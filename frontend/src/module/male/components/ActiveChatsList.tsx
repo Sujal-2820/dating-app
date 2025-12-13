@@ -21,33 +21,33 @@ const ChatItem = ({ chat, onClick }: { chat: Chat; onClick?: () => void }) => {
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-4 border-b border-slate-200 dark:border-slate-800/50 bg-background-light dark:bg-background-dark px-4 py-3 active:bg-slate-100 dark:active:bg-[#2a2515] hover:bg-slate-50 dark:hover:bg-[#2a2515]/80 transition-colors"
+      className="flex w-full items-center gap-4 border-b border-pink-200/30 dark:border-pink-900/20 bg-gradient-to-r from-white via-pink-50/30 to-white dark:from-[#1a0f14] dark:via-[#2d1a24]/50 dark:to-[#1a0f14] px-4 py-3.5 active:bg-pink-50 dark:active:bg-[#2d1a24] hover:bg-pink-50/50 dark:hover:bg-[#2d1a24]/80 transition-all duration-200 group"
     >
       <div className="relative">
         <div
-          className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-14"
+          className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-14 border-2 border-pink-200 dark:border-pink-800 shadow-md group-hover:shadow-lg transition-shadow"
           style={{ backgroundImage: `url("${chat.userAvatar}")` }}
           aria-label={`Portrait of ${chat.userName}`}
         />
         {chat.isOnline && (
-          <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background-light dark:border-background-dark" />
+          <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-white dark:border-[#1a0f14] shadow-md ring-1 ring-pink-200/50 dark:ring-pink-900/30" />
         )}
       </div>
-      <div className="flex flex-1 flex-col justify-center text-left">
+      <div className="flex flex-1 flex-col justify-center text-left min-w-0">
         <div className="flex justify-between items-center mb-0.5">
-          <p className="text-slate-900 dark:text-white text-base font-bold leading-normal">
+          <p className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate group-hover:text-pink-700 dark:group-hover:text-pink-300 transition-colors">
             {chat.userName}
           </p>
-          <p className="text-slate-400 dark:text-[#cbbc90] text-xs font-normal">
+          <p className="text-pink-600/70 dark:text-pink-400/70 text-xs font-medium flex-shrink-0 ml-2">
             {chat.timestamp}
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal line-clamp-1 flex-1">
+          <p className="text-slate-600 dark:text-slate-300 text-sm font-normal leading-normal line-clamp-1 flex-1 min-w-0">
             {chat.lastMessage}
           </p>
           {chat.hasUnread && (
-            <div className="h-2 w-2 rounded-full bg-primary shrink-0 ml-auto" />
+            <div className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 shrink-0 ml-auto shadow-md ring-1 ring-pink-200/50 dark:ring-pink-900/30" />
           )}
         </div>
       </div>
@@ -58,11 +58,13 @@ const ChatItem = ({ chat, onClick }: { chat: Chat; onClick?: () => void }) => {
 export const ActiveChatsList = ({ chats, onChatClick, onSeeAllClick }: ActiveChatsListProps) => {
   return (
     <div className="flex flex-col w-full">
-      <div className="flex items-center justify-between px-4 pb-2 pt-2">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Active Chats</h2>
+      <div className="flex items-center justify-between px-4 pb-3 pt-2">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span className="text-pink-500">💬</span> Active Chats
+        </h2>
         <button
           onClick={onSeeAllClick}
-          className="text-sm font-medium text-primary hover:text-yellow-300 transition-colors"
+          className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors"
         >
           See All
         </button>

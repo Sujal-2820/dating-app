@@ -26,6 +26,19 @@ import { UserProfilePage as FemaleUserProfilePage } from './module/female/pages/
 import { GiftTradingPage } from './module/female/pages/GiftTradingPage';
 import { GiftTradeFlowPage } from './module/female/pages/GiftTradeFlowPage';
 
+// Admin module imports
+import { AdminDashboard } from './module/admin/pages/AdminDashboard';
+import { UsersManagementPage } from './module/admin/pages/UsersManagementPage';
+import { UserDetailPage } from './module/admin/pages/UserDetailPage';
+import { FemaleApprovalPage } from './module/admin/pages/FemaleApprovalPage';
+import { RejectApprovalPage } from './module/admin/pages/RejectApprovalPage';
+import { WithdrawalManagementPage } from './module/admin/pages/WithdrawalManagementPage';
+import { RejectWithdrawalPage } from './module/admin/pages/RejectWithdrawalPage';
+import { CoinEconomyPage } from './module/admin/pages/CoinEconomyPage';
+import { TransactionsPage } from './module/admin/pages/TransactionsPage';
+import { AuditLogsPage } from './module/admin/pages/AuditLogsPage';
+import { SettingsPage } from './module/admin/pages/SettingsPage';
+
 // Common pages
 import { NotFoundPage } from './pages/NotFoundPage';
 import { LandingPage } from './pages/LandingPage';
@@ -78,6 +91,19 @@ function App() {
             <Route path="/female/profile/:profileId" element={<FemaleUserProfilePage />} />
             <Route path="/female/trade-gifts" element={<GiftTradingPage />} />
             <Route path="/female/trade-gifts/flow" element={<GiftTradeFlowPage />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<UsersManagementPage />} />
+        <Route path="/admin/users/:userId" element={<UserDetailPage />} />
+        <Route path="/admin/female-approval" element={<FemaleApprovalPage />} />
+        <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
+        <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
+        <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
+        <Route path="/admin/coin-economy" element={<CoinEconomyPage />} />
+        <Route path="/admin/transactions" element={<TransactionsPage />} />
+        <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+        <Route path="/admin/settings" element={<SettingsPage />} />
 
         {/* Catch-all route for 404 */}
         <Route path="*" element={<NotFoundPage />} />

@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { CoinPurchaseHeader } from '../components/CoinPurchaseHeader';
 import { SegmentedControls } from '../components/SegmentedControls';
 import { TransactionItem } from '../components/TransactionItem';
-import { MaterialSymbol } from '../types/material-symbol';
+import { BottomNavigation } from '../components/BottomNavigation';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { Transaction } from '../types/male.types';
 
 // Mock data - replace with actual API calls
@@ -58,6 +62,7 @@ const filterOptions = [
 
 export const PurchaseHistoryPage = () => {
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -85,6 +90,17 @@ export const PurchaseHistoryPage = () => {
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Top App Bar */}
       <CoinPurchaseHeader onHistoryClick={() => navigate('/male/buy-coins')} />
 

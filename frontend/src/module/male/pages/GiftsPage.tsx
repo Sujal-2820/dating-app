@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MaterialSymbol } from '../types/material-symbol';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import type { Gift, GiftTransaction } from '../types/male.types';
 
-const navigationItems = [
-  { id: 'discover', icon: 'explore', label: 'Discover' },
-  { id: 'chats', icon: 'chat_bubble', label: 'Chats', hasBadge: true },
-  { id: 'wallet', icon: 'monetization_on', label: 'Wallet' },
-  { id: 'profile', icon: 'person', label: 'Profile' },
-];
 
 // Mock data - replace with actual API calls
 const mockGifts: Gift[] = [
@@ -51,6 +48,7 @@ const mockAvailableGifts = 5; // From VIP purchase
 
 export const GiftsPage = () => {
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
   const [selectedTab, setSelectedTab] = useState<'send' | 'history'>('send');
   const [selectedGift, setSelectedGift] = useState<string | null>(null);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
@@ -61,25 +59,6 @@ export const GiftsPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  const handleNavigationClick = (itemId: string) => {
-    switch (itemId) {
-      case 'discover':
-        navigate('/male/discover');
-        break;
-      case 'chats':
-        navigate('/male/chats');
-        break;
-      case 'wallet':
-        navigate('/male/wallet');
-        break;
-      case 'profile':
-        navigate('/male/my-profile');
-        break;
-      default:
-        break;
-    }
-  };
 
   const handleSendGift = () => {
     if (selectedGift && selectedRecipient) {
@@ -101,8 +80,19 @@ export const GiftsPage = () => {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
+      <header className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={() => navigate(-1)}

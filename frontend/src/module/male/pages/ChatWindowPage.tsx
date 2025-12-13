@@ -6,6 +6,10 @@ import { MessageInput } from '../components/MessageInput';
 import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { ChatGiftSelectorModal } from '../components/ChatGiftSelectorModal';
+import { BottomNavigation } from '../components/BottomNavigation';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import type { Message } from '../types/male.types';
 import type { Gift } from '../types/male.types';
 
@@ -176,6 +180,7 @@ const getMockMessages = (chatId: string): Message[] => {
 export const ChatWindowPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -342,7 +347,18 @@ export const ChatWindowPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden">
+    <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark overflow-hidden pb-20">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Header */}
       <ChatWindowHeader
         userName={chatInfo.userName}
@@ -396,6 +412,9 @@ export const ChatWindowPage = () => {
         availableGifts={availableGifts}
         coinBalance={coinBalance}
       />
+
+      {/* Bottom Navigation */}
+      <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
     </div>
   );
 };

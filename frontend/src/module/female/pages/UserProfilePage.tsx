@@ -1,10 +1,92 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { BadgeDisplay } from '../../../shared/components/BadgeDisplay';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
+import type { Badge } from '../../male/types/male.types';
+
+// Mock badges for male users
+const mockMaleUserBadges: Record<string, Badge[]> = {
+  '1': [
+    {
+      id: '1',
+      name: 'VIP Member',
+      icon: 'workspace_premium',
+      description: 'Exclusive VIP membership badge',
+      category: 'vip',
+      isUnlocked: true,
+      unlockedAt: '2024-01-15',
+      rarity: 'legendary',
+    },
+    {
+      id: '2',
+      name: 'First Gift',
+      icon: 'redeem',
+      description: 'Sent your first gift',
+      category: 'achievement',
+      isUnlocked: true,
+      unlockedAt: '2024-01-20',
+      rarity: 'common',
+    },
+    {
+      id: '3',
+      name: 'Chat Master',
+      icon: 'chat_bubble',
+      description: 'Sent 100 messages',
+      category: 'achievement',
+      isUnlocked: true,
+      unlockedAt: '2024-01-25',
+      rarity: 'rare',
+    },
+    {
+      id: '5',
+      name: 'Early Adopter',
+      icon: 'star',
+      description: 'Joined in the first month',
+      category: 'special',
+      isUnlocked: true,
+      unlockedAt: '2024-01-01',
+      rarity: 'rare',
+    },
+  ],
+  '2': [
+    {
+      id: '1',
+      name: 'VIP Member',
+      icon: 'workspace_premium',
+      description: 'Exclusive VIP membership badge',
+      category: 'vip',
+      isUnlocked: true,
+      unlockedAt: '2024-01-10',
+      rarity: 'legendary',
+    },
+    {
+      id: '7',
+      name: 'Profile Perfect',
+      icon: 'check_circle',
+      description: 'Complete your profile 100%',
+      category: 'achievement',
+      isUnlocked: true,
+      unlockedAt: '2024-01-05',
+      rarity: 'common',
+    },
+  ],
+  '3': [
+    {
+      id: '2',
+      name: 'First Gift',
+      icon: 'redeem',
+      description: 'Sent your first gift',
+      category: 'achievement',
+      isUnlocked: true,
+      unlockedAt: '2024-01-18',
+      rarity: 'common',
+    },
+  ],
+};
 
 // Mock data - replace with actual API call
 interface UserProfile {
@@ -17,27 +99,28 @@ interface UserProfile {
   occupation?: string;
   bio?: string;
   photos?: string[];
+  badges?: Badge[];
 }
 
 const mockProfiles: Record<string, UserProfile> = {
   '1': {
     id: '1',
-    name: 'John',
+    name: 'Alex',
     age: 28,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNnKyZLNWCV7B-XwKgjd9-bbG9ZSq583oYGij7uKTYk2Ah_9nkpqgsGSDu-FUgux5QDiLCTw_y9JxTBhkZjWAOOReMhlK98A_84vIsKaxQ0IUzZqkJ7-wnAv67HRuUVltC2QQzOfbTk1-OdjqC7SWT4iG-MXs81ePZK3x1mYOHabRqp4eH7yIfiX3tH-YMXSs1uWS41vrxzPC8_MJHasLGiUWINfHYQ7KF2jfo0n_Yo6qBJKr_qMrOBUdimUVVJdY46GD7L0v-oL4',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
     distance: '1.2 km',
     isOnline: true,
     occupation: 'Engineer',
     bio: 'Love traveling and photography',
     photos: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBNnKyZLNWCV7B-XwKgjd9-bbG9ZSq583oYGij7uKTYk2Ah_9nkpqgsGSDu-FUgux5QDiLCTw_y9JxTBhkZjWAOOReMhlK98A_84vIsKaxQ0IUzZqkJ7-wnAv67HRuUVltC2QQzOfbTk1-OdjqC7SWT4iG-MXs81ePZK3x1mYOHabRqp4eH7yIfiX3tH-YMXSs1uWS41vrxzPC8_MJHasLGiUWINfHYQ7KF2jfo0n_Yo6qBJKr_qMrOBUdimUVVJdY46GD7L0v-oL4',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
     ],
   },
   '2': {
     id: '2',
-    name: 'Mike',
+    name: 'Michael',
     age: 25,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDHxrviFMtsvG_Idvc-7NLJcibIA3HzpSimrSGtu5nkdVXQ0lR_v5vA3Ze5PcHiEZqXs444SJmue_gn-BAJpC_N4OBtiZ76IDvr9bLR_SxT5dQNp7j5WAWAzR9Cc6wdHAOpqLvxURxJbRcG1oN1Y1usF6uro9rSV6FLFxuNnpI_KIDdXzO8GH9BtmEm-Da4mrHV39aDrH-gGMTms5x6GJrf9pvOpfKnux5C1cD8_KgfRomNHp0HOgf-8TefyOTLXglCq3P1RsbOOf8',
+    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
     distance: '3.5 km',
     isOnline: false,
     occupation: 'Designer',
@@ -63,7 +146,10 @@ export const UserProfilePage = () => {
     window.scrollTo(0, 0);
   }, [profileId]);
 
-  const profile = profileId ? mockProfiles[profileId] : null;
+  const profile = profileId ? {
+    ...mockProfiles[profileId],
+    badges: mockMaleUserBadges[profileId] || []
+  } : null;
 
   const handleBackClick = () => {
     navigate(-1);
@@ -161,6 +247,25 @@ export const UserProfilePage = () => {
             <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">{profile.bio}</p>
           )}
         </div>
+
+        {/* Badges Section */}
+        {profile.badges && profile.badges.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <MaterialSymbol name="workspace_premium" className="text-primary" size={20} />
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Badges</h3>
+            </div>
+            <BadgeDisplay 
+              badges={profile.badges} 
+              maxDisplay={6}
+              showUnlockedOnly={true}
+              compact={true}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+              {profile.badges.filter(b => b.isUnlocked).length} badge{profile.badges.filter(b => b.isUnlocked).length !== 1 ? 's' : ''} unlocked
+            </p>
+          </div>
+        )}
 
         {/* Photo Gallery */}
         {profile.photos && profile.photos.length > 0 && (

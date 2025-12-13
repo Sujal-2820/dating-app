@@ -4,6 +4,7 @@ export interface User {
   avatar: string;
   isPremium: boolean;
   isOnline: boolean;
+  badges?: Badge[];
 }
 
 export interface Wallet {

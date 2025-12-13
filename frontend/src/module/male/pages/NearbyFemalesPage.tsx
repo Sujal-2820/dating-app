@@ -6,6 +6,9 @@ import { FilterPanel, type FilterOptions } from '../components/FilterPanel';
 import { ProfileCard } from '../components/ProfileCard';
 import { FloatingActionButton } from '../components/FloatingActionButton';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import type { NearbyFemale, FilterType } from '../types/male.types';
 
 // Mock data - replace with actual API calls
@@ -72,15 +75,9 @@ const mockProfiles: NearbyFemale[] = [
   },
 ];
 
-const navigationItems = [
-  { id: 'discover', icon: 'explore', label: 'Discover', isActive: true },
-  { id: 'chats', icon: 'chat_bubble', label: 'Chats', hasBadge: true },
-  { id: 'wallet', icon: 'monetization_on', label: 'Wallet' },
-  { id: 'profile', icon: 'person', label: 'Profile' },
-];
-
 export const NearbyFemalesPage = () => {
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -190,27 +187,19 @@ export const NearbyFemalesPage = () => {
     navigate('/male/buy-coins');
   };
 
-  const handleNavigationClick = (itemId: string) => {
-    switch (itemId) {
-      case 'discover':
-        navigate('/male/discover');
-        break;
-      case 'chats':
-        navigate('/male/chats');
-        break;
-      case 'wallet':
-        navigate('/male/wallet');
-        break;
-      case 'profile':
-        navigate('/male/my-profile');
-        break;
-      default:
-        break;
-    }
-  };
-
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Top App Bar */}
       <TopAppBar
         title="Nearby"

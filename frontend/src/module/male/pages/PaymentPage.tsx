@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MaterialSymbol } from '../types/material-symbol';
+import { BottomNavigation } from '../components/BottomNavigation';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { CoinPlan } from '../types/male.types';
 
 // Mock data - replace with actual API calls
@@ -42,6 +46,7 @@ const mockCoinPlans: Record<string, CoinPlan> = {
 export const PaymentPage = () => {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -124,8 +129,19 @@ export const PaymentPage = () => {
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white min-h-screen pb-24">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
+      <header className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={handleCancel}
@@ -235,6 +251,9 @@ export const PaymentPage = () => {
           Your payment is secured by Razorpay. We never store your card details.
         </p>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
     </div>
   );
 };

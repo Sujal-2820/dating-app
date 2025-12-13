@@ -6,6 +6,10 @@ import { PromoBanner } from '../components/PromoBanner';
 import { CoinPlanCard } from '../components/CoinPlanCard';
 import { PaymentMethodSelector } from '../components/PaymentMethodSelector';
 import { TrustFooter } from '../components/TrustFooter';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
+import { BottomNavigation } from '../components/BottomNavigation';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import type { PaymentMethod } from '../components/PaymentMethodSelector';
 import type { CoinPlan } from '../types/male.types';
 
@@ -82,6 +86,17 @@ export const CoinPurchasePage = () => {
 
   return (
     <div className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Top App Bar */}
       <CoinPurchaseHeader onHistoryClick={handleHistoryClick} />
 
@@ -135,6 +150,9 @@ export const CoinPurchasePage = () => {
         {/* Trust Footer */}
         <TrustFooter />
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
     </div>
   );
 };

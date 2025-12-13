@@ -2,7 +2,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TopAppBar } from '../components/TopAppBar';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { MaterialSymbol } from '../types/material-symbol';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { Notification } from '../types/male.types';
 
 // Mock data - replace with actual API calls
@@ -57,13 +60,6 @@ const mockNotifications: Notification[] = [
   },
 ];
 
-const navigationItems = [
-  { id: 'discover', icon: 'explore', label: 'Discover' },
-  { id: 'chats', icon: 'chat_bubble', label: 'Chats', hasBadge: true },
-  { id: 'wallet', icon: 'monetization_on', label: 'Wallet' },
-  { id: 'profile', icon: 'person', label: 'Profile' },
-];
-
 const filterOptions = [
   { id: 'all', label: 'All' },
   { id: 'unread', label: 'Unread' },
@@ -73,6 +69,7 @@ const filterOptions = [
 
 export const NotificationsPage = () => {
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -138,29 +135,21 @@ export const NotificationsPage = () => {
     }
   };
 
-  const handleNavigationClick = (itemId: string) => {
-    switch (itemId) {
-      case 'discover':
-        navigate('/male/discover');
-        break;
-      case 'chats':
-        navigate('/male/chats');
-        break;
-      case 'wallet':
-        navigate('/male/wallet');
-        break;
-      case 'profile':
-        navigate('/male/my-profile');
-        break;
-      default:
-        break;
-    }
-  };
-
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Top App Bar */}
       <TopAppBar
         title="Notifications"

@@ -4,7 +4,10 @@ import { ChatListHeader } from '../components/ChatListHeader';
 import { SearchBar } from '../components/SearchBar';
 import { ChatListItem } from '../components/ChatListItem';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
 import { EditChatModal } from '../components/EditChatModal';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import type { Chat } from '../types/male.types';
 
 // Mock data - replace with actual API calls
@@ -84,15 +87,9 @@ const mockChats: Chat[] = [
   },
 ];
 
-const navigationItems = [
-  { id: 'discover', icon: 'explore', label: 'Discover' },
-  { id: 'chats', icon: 'chat_bubble', label: 'Chats', isActive: true, hasBadge: true },
-  { id: 'wallet', icon: 'monetization_on', label: 'Wallet' },
-  { id: 'profile', icon: 'person', label: 'Profile' },
-];
-
 export const ChatListPage = () => {
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -130,27 +127,19 @@ export const ChatListPage = () => {
     navigate(`/male/chat/${chatId}`);
   };
 
-  const handleNavigationClick = (itemId: string) => {
-    switch (itemId) {
-      case 'discover':
-        navigate('/male/discover');
-        break;
-      case 'chats':
-        navigate('/male/chats');
-        break;
-      case 'wallet':
-        navigate('/male/wallet');
-        break;
-      case 'profile':
-        navigate('/male/my-profile');
-        break;
-      default:
-        break;
-    }
-  };
-
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-hidden">
+    <div className="relative flex h-full min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-hidden pb-20">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Status Bar Area (Visual Only) */}
       <div className="h-6 w-full bg-background-light dark:bg-background-dark shrink-0" />
 

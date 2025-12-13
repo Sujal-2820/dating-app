@@ -6,17 +6,14 @@ import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { SegmentedControls } from '../components/SegmentedControls';
 import { TransactionItem } from '../components/TransactionItem';
 import { BottomNavigation } from '../components/BottomNavigation';
+import { MaleTopNavbar } from '../components/MaleTopNavbar';
+import { MaleSidebar } from '../components/MaleSidebar';
 import { HelpModal } from '../components/HelpModal';
 import { QuickActionsModal } from '../components/QuickActionsModal';
-import { MaterialSymbol } from '../types/material-symbol';
+import { useMaleNavigation } from '../hooks/useMaleNavigation';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { Transaction } from '../types/male.types';
 
-const navigationItems = [
-  { id: 'discover', icon: 'explore', label: 'Discover' },
-  { id: 'chats', icon: 'chat_bubble', label: 'Chats', hasBadge: true },
-  { id: 'wallet', icon: 'monetization_on', label: 'Wallet', isActive: true },
-  { id: 'profile', icon: 'person', label: 'Profile' },
-];
 
 // Mock data - replace with actual API calls
 const mockTransactions: Transaction[] = [
@@ -79,6 +76,7 @@ const filterOptions = [
 
 export const WalletPage = () => {
   const navigate = useNavigate();
+  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -106,24 +104,6 @@ export const WalletPage = () => {
     return mockTransactions;
   }, [selectedFilter]);
 
-  const handleNavigationClick = (itemId: string) => {
-    switch (itemId) {
-      case 'discover':
-        navigate('/male/discover');
-        break;
-      case 'chats':
-        navigate('/male/chats');
-        break;
-      case 'wallet':
-        navigate('/male/wallet');
-        break;
-      case 'profile':
-        navigate('/male/my-profile');
-        break;
-      default:
-        break;
-    }
-  };
 
   const handleBuyCoins = () => {
     navigate('/male/buy-coins');
@@ -150,7 +130,18 @@ export const WalletPage = () => {
   };
 
   return (
-    <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto shadow-xl bg-background-light dark:bg-background-dark">
+    <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto shadow-xl bg-background-light dark:bg-background-dark pb-20">
+      {/* Top Navbar */}
+      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {/* Sidebar */}
+      <MaleSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        items={navigationItems}
+        onItemClick={handleNavigationClick}
+      />
+
       {/* Top App Bar */}
       <WalletHeader onHelpClick={handleHelpClick} />
 
