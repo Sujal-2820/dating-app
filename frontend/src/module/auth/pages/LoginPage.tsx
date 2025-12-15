@@ -114,7 +114,7 @@ export const LoginPage = () => {
                   type="email"
                   value={formData.email || ''}
                   onChange={(e) => handleChange('email', e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+                  className={`w-full px-4 py-3 bg-white text-gray-900 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
                     errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="your.email@example.com"
@@ -140,7 +140,7 @@ export const LoginPage = () => {
                     type="tel"
                     value={formData.phone || ''}
                     onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className={`flex-1 px-4 py-3 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+                    className={`flex-1 px-4 py-3 bg-white text-gray-900 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
                       errors.phone ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="9876543210"
