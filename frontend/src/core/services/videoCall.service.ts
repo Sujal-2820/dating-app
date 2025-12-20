@@ -60,6 +60,13 @@ class VideoCallService {
     private listeners: Map<string, Set<CallEventCallback>> = new Map();
     private iceCandidatesQueue: RTCIceCandidate[] = [];
     private remoteDescriptionSet = false;
+    private listenersInitialized = false;
+
+    constructor() {
+        // Auto-initialize socket listeners when service is created
+        // This ensures listeners are ready before any user interaction
+        this.setupSocketListeners();
+    }
 
     private getInitialState(): CallState {
         return {
@@ -83,7 +90,14 @@ class VideoCallService {
      * Initialize socket event listeners
      */
     setupSocketListeners() {
+        // Prevent duplicate registration
+        if (this.listenersInitialized) {
+            console.log('📞 Socket listeners already initialized, skipping');
+            return;
+        }
+        this.listenersInitialized = true;
         console.log('📞📞📞 Setting up video call socket listeners');
+
         // Incoming call
         socketService.on('call:incoming', this.handleIncomingCall.bind(this));
 
