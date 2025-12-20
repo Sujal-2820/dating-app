@@ -17,6 +17,8 @@ interface ChatWindowHeaderProps {
   intimacy?: IntimacyInfo | null;
   onMoreClick?: () => void;
   onBackClick?: () => void;
+  onVideoCall?: () => void;
+  showVideoCall?: boolean;
 }
 
 export const ChatWindowHeader = ({
@@ -28,6 +30,8 @@ export const ChatWindowHeader = ({
   intimacy,
   onMoreClick,
   onBackClick,
+  onVideoCall,
+  showVideoCall = false,
 }: ChatWindowHeaderProps) => {
   const navigate = useNavigate();
 
@@ -113,6 +117,18 @@ export const ChatWindowHeader = ({
               {coinBalance.toLocaleString()}
             </span>
           </div>
+        )}
+
+        {/* Video Call Button */}
+        {showVideoCall && onVideoCall && (
+          <button
+            onClick={onVideoCall}
+            className="flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 transition-all active:scale-95 shrink-0 mr-2 shadow-md"
+            aria-label="Video Call"
+            title="Start Video Call (500 coins)"
+          >
+            <MaterialSymbol name="videocam" size={20} />
+          </button>
         )}
 
         {/* More Options Button */}

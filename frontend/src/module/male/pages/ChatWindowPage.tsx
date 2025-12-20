@@ -8,6 +8,7 @@ import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { ChatGiftSelectorModal } from '../components/ChatGiftSelectorModal';
 import { LevelUpModal } from '../components/LevelUpModal';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
+import { useVideoCall } from '../../../core/context/VideoCallContext';
 import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
 import type { Chat as ApiChat, Message as ApiMessage, IntimacyInfo } from '../../../core/types/chat.types';
@@ -19,6 +20,7 @@ export const ChatWindowPage = () => {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
   const { coinBalance, updateBalance, user } = useGlobalState(); // Use global state
+  const { requestCall, isInCall, callPrice } = useVideoCall(); // Video call context
 
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [chatInfo, setChatInfo] = useState<ApiChat | null>(null);
@@ -275,6 +277,33 @@ export const ChatWindowPage = () => {
         intimacy={intimacy}
         onMoreClick={() => setIsMoreOptionsOpen(true)}
         onBackClick={() => navigate('/male/chats')}
+        showVideoCall={true}
+        onVideoCall={async () => {
+          if (isInCall) {
+            setError('You are already in a call');
+            return;
+          }
+          if (coinBalance < callPrice) {
+            setError(`Insufficient coins. Video call costs ${callPrice} coins.`);
+            return;
+          }
+          if (!chatInfo.otherUser.isOnline) {
+            setError('User is currently offline');
+            return;
+          }
+          try {
+            await requestCall(
+              chatInfo.otherUser._id,
+              chatInfo.otherUser.name,
+              chatInfo.otherUser.avatar || '',
+              chatId!,
+              user?.profile?.name || 'User',
+              user?.profile?.photos?.[0]?.url || ''
+            );
+          } catch (err: any) {
+            setError(err.message || 'Failed to start video call');
+          }
+        }}
       />
 
       {/* Error Banner */}

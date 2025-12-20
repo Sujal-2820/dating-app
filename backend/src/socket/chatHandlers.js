@@ -58,6 +58,10 @@ export const setupChatHandlers = (io) => {
         // Store active user
         activeUsers.set(userId, socket.id);
 
+        // Join user's personal room (for direct user-to-user events like video calls)
+        socket.join(userId);
+        logger.info(`📞 User ${userId} joined personal room`);
+
         // Update user online status
         User.findByIdAndUpdate(userId, {
             isOnline: true,

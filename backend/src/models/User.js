@@ -59,6 +59,17 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // Video Call Fields (for paid video calling feature)
+    isOnCall: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    lockedCoins: {
+      type: Number,
+      default: 0,
+      min: [0, 'Locked coins cannot be negative'],
+    },
 
     // Wallet Fields (Sujal - Wallet Domain)
     coinBalance: {

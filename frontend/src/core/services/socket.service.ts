@@ -107,6 +107,71 @@ class SocketService {
         this.socket.on('intimacy:levelup', (data) => {
             this.emit('intimacy:levelup', data);
         });
+
+        // ==================== VIDEO CALL EVENTS ====================
+        // Incoming call
+        this.socket.on('call:incoming', (data) => {
+            console.log('📞📞📞 SOCKET RECEIVED call:incoming:', data);
+            this.emit('call:incoming', data);
+        });
+
+        // Outgoing call status
+        this.socket.on('call:outgoing', (data) => {
+            this.emit('call:outgoing', data);
+        });
+
+        // Call accepted
+        this.socket.on('call:accepted', (data) => {
+            this.emit('call:accepted', data);
+        });
+
+        // Call proceed (for receiver)
+        this.socket.on('call:proceed', (data) => {
+            this.emit('call:proceed', data);
+        });
+
+        // Call rejected
+        this.socket.on('call:rejected', (data) => {
+            this.emit('call:rejected', data);
+        });
+
+        // Call started
+        this.socket.on('call:started', (data) => {
+            this.emit('call:started', data);
+        });
+
+        // Call ended
+        this.socket.on('call:ended', (data) => {
+            this.emit('call:ended', data);
+        });
+
+        // Force end
+        this.socket.on('call:force-end', (data) => {
+            this.emit('call:force-end', data);
+        });
+
+        // Call error
+        this.socket.on('call:error', (data) => {
+            this.emit('call:error', data);
+        });
+
+        // Call missed
+        this.socket.on('call:missed', (data) => {
+            this.emit('call:missed', data);
+        });
+
+        // WebRTC signaling
+        this.socket.on('webrtc:offer', (data) => {
+            this.emit('webrtc:offer', data);
+        });
+
+        this.socket.on('webrtc:answer', (data) => {
+            this.emit('webrtc:answer', data);
+        });
+
+        this.socket.on('webrtc:ice-candidate', (data) => {
+            this.emit('webrtc:ice-candidate', data);
+        });
     }
 
     /**
@@ -145,6 +210,13 @@ class SocketService {
     }
 
     /**
+     * Emit event to server (public method for video calls)
+     */
+    emitToServer(event: string, data: any) {
+        this.socket?.emit(event, data);
+    }
+
+    /**
      * Subscribe to an event
      */
     on(event: string, callback: Function) {
@@ -169,6 +241,7 @@ class SocketService {
      */
     private emit(event: string, data: any) {
         const callbacks = this.listeners.get(event);
+        console.log(`📞 Socket emit ${event}: ${callbacks?.size || 0} listeners registered`);
         if (callbacks) {
             callbacks.forEach(callback => callback(data));
         }
