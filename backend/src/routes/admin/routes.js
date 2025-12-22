@@ -13,6 +13,9 @@ const router = express.Router();
 router.use(protect);
 router.use(restrictTo('admin'));
 
+// Dashboard Stats
+router.get('/dashboard/stats', adminController.getDashboardStats);
+
 // Female Approval Routes
 router.get('/females/pending', adminController.getPendingFemales);
 router.patch('/females/:id/approve', adminController.approveFemale);

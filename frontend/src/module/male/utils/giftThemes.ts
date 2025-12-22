@@ -100,24 +100,20 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
 };
 
 export const getGiftImage = (giftName: string): string => {
+  // CDN URLs for gift images
   const name = (giftName || '').toLowerCase();
 
-  // Icons8 Color icons (free for use with link, stable for demos)
-  const baseUrl = 'https://img.icons8.com/fluency/96';
-
-  if (name.includes('rose')) return `${baseUrl}/rose.png`;
-  if (name.includes('chocolate')) return `${baseUrl}/chocolate-bar.png`;
-  if (name.includes('diamond')) return `${baseUrl}/diamond.png`;
-  if (name.includes('heart')) return `${baseUrl}/heart-with-arrow.png`;
-  if (name.includes('star')) return `${baseUrl}/star.png`;
-  if (name.includes('crown')) return `${baseUrl}/crown.png`;
-  if (name.includes('balloon')) return `${baseUrl}/air-balloon.png`;
-  if (name.includes('ring')) return `${baseUrl}/diamond-ring.png`;
-  if (name.includes('teddy')) return `${baseUrl}/teddy-bear.png`;
-  if (name.includes('cake')) return `${baseUrl}/birthday-cake.png`;
-  if (name.includes('flower')) return `${baseUrl}/flower.png`;
-  if (name.includes('coffee')) return `${baseUrl}/coffee.png`;
+  if (name.includes('bouquet')) return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV8XtmBcY7iDWHrRvq2HbnuRMXTufJOLLZqg&s';
+  if (name.includes('thumbs')) return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvSSwzDVs8q2Rdgy5zAHe_d34cmq2FxfbrNQ&s';
+  if (name.includes('laugh')) return 'https://static.vecteezy.com/system/resources/thumbnails/014/438/856/small/rolling-on-the-floor-laughing-large-size-of-yellow-emoji-smile-vector.jpg';
+  if (name.includes('rose')) return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTX2X2b9R5sx_RhsX2VbHIQ7UcTPu5e9SpVKg&s';
+  if (name.includes('heart')) return 'https://cdn-icons-png.flaticon.com/512/833/833472.png';
+  if (name.includes('teddy')) return 'https://cdn-icons-png.flaticon.com/512/3069/3069172.png';
+  if (name.includes('cake')) return 'https://cdn-icons-png.flaticon.com/512/3132/3132693.png';
+  if (name.includes('ring')) return 'https://cdn.pixabay.com/photo/2021/03/24/13/24/ring-6120138_1280.png';
+  if (name.includes('diamond')) return 'https://cdn.pixabay.com/photo/2021/03/24/13/24/ring-6120138_1280.png';
+  if (name.includes('flower')) return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV8XtmBcY7iDWHrRvq2HbnuRMXTufJOLLZqg&s';
 
   // Default
-  return `${baseUrl}/gift.png`;
+  return 'https://cdn-icons-png.flaticon.com/512/2143/2143150.png';
 };

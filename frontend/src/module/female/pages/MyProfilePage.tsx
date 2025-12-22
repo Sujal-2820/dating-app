@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { GoogleMapsAutocomplete } from '../../../shared/components/GoogleMapsAutocomplete';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { FemaleSidebar } from '../components/FemaleSidebar';
@@ -22,6 +23,7 @@ export const MyProfilePage = () => {
   const [name, setName] = useState(user?.name || 'Anonymous');
   const [age, setAge] = useState(24);
   const [location, setLocation] = useState('New York, USA');
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [bio, setBio] = useState('Love traveling and meeting new people! 🌍');
   const [interests, setInterests] = useState(['Travel', 'Photography', 'Music', 'Fitness']);
   const [showOnlineStatus, setShowOnlineStatus] = useState(true);
@@ -65,14 +67,22 @@ export const MyProfilePage = () => {
 
   const handleSave = async () => {
     try {
-      const response = await axios.patch(`${API_URL}/users/me`, {
+      const payload: any = {
         name,
         age,
         city: location,
         bio,
         interests,
         photos
-      }, {
+      };
+
+      // Add coordinates if available
+      if (coordinates) {
+        payload.latitude = coordinates.lat;
+        payload.longitude = coordinates.lng;
+      }
+
+      const response = await axios.patch(`${API_URL}/users/me`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('matchmint_auth_token')}` }
       });
 
@@ -400,11 +410,14 @@ export const MyProfilePage = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">
                 Location
               </label>
-              <input
-                type="text"
+              <GoogleMapsAutocomplete
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(value, coords) => {
+                  setLocation(value);
+                  if (coords) setCoordinates(coords);
+                }}
                 className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Enter your location"
               />
             </div>
           )}

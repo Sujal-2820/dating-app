@@ -1,92 +1,57 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
-import type { NearbyFemale } from '../types/male.types';
-
-// Mock data - replace with actual API call
-const mockProfiles: Record<string, NearbyFemale & { photos?: string[]; interests?: string[]; bio?: string }> = {
-  '1': {
-    id: '1',
-    name: 'Sarah',
-    age: 23,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNnKyZLNWCV7B-XwKgjd9-bbG9ZSq583oYGij7uKTYk2Ah_9nkpqgsGSDu-FUgux5QDiLCTw_y9JxTBhkZjWAOOReMhlK98A_84vIsKaxQ0IUzZqkJ7-wnAv67HRuUVltC2QQzOfbTk1-OdjqC7SWT4iG-MXs81ePZK3x1mYOHabRqp4eH7yIfiX3tH-YMXSs1uWS41vrxzPC8_MJHasLGiUWINfHYQ7KF2jfo0n_Yo6qBJKr_qMrOBUdimUVVJdY46GD7L0v-oL4',
-    distance: '1.2 km',
-    isOnline: true,
-    occupation: 'Student',
-    chatCost: 20,
-    bio: 'Love traveling and exploring new places! Looking for someone to share adventures with.',
-    interests: ['Travel', 'Photography', 'Music', 'Fitness'],
-    photos: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBNnKyZLNWCV7B-XwKgjd9-bbG9ZSq583oYGij7uKTYk2Ah_9nkpqgsGSDu-FUgux5QDiLCTw_y9JxTBhkZjWAOOReMhlK98A_84vIsKaxQ0IUzZqkJ7-wnAv67HRuUVltC2QQzOfbTk1-OdjqC7SWT4iG-MXs81ePZK3x1mYOHabRqp4eH7yIfiX3tH-YMXSs1uWS41vrxzPC8_MJHasLGiUWINfHYQ7KF2jfo0n_Yo6qBJKr_qMrOBUdimUVVJdY46GD7L0v-oL4',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuC81hkr7IkYx1ryaWF6XEKAw50xyRvJBGMogrF-zD5ChG66QAopPNWZvczWXWXasmarotX6xfLiXqIGT-HGa4N4mpnfl6tHPN16fBm5L0ebBFFR6YnfhOhNpt_PXB-rNdw4iozv00ERuqlCKno-B1P2UZ6g-dU5YY4Or_m3Xdgk4_MrxVK9o6Uz70Vr_fXQdMhSrjjCl7s_yQE_R1O9FNwroQqdfSFv6kiO76qVxmnHDhLrYwRWtfdSdegsNjAzgAdgkUZgUomw2j8',
-    ],
-  },
-  '2': {
-    id: '2',
-    name: 'Jessica',
-    age: 25,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDHxrviFMtsvG_Idvc-7NLJcibIA3HzpSimrSGtu5nkdVXQ0lR_v5vA3Ze5PcHiEZqXs444SJmue_gn-BAJpC_N4OBtiZ76IDvr9bLR_SxT5dQNp7j5WAWAzR9Cc6wdHAOpqLvxURxJbRcG1oN1Y1usF6uro9rSV6FLFxuNnpI_KIDdXzO8GH9BtmEm-Da4mrHV39aDrH-gGMTms5x6GJrf9pvOpfKnux5C1cD8_KgfRomNHp0HOgf-8TefyOTLXglCq3P1RsbOOf8',
-    distance: '3.5 km',
-    isOnline: false,
-    occupation: 'Designer',
-    chatCost: 20,
-  },
-  '3': {
-    id: '3',
-    name: 'Emily',
-    age: 21,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBMwDNlS8xIMG2GPDOruau0I96EJW8UAfXypa6c3-bkakWGNwuNHv4bT_JxAS2tQQbwxDbRjkJCejmcZYfsqqtKJ-7OeHLwq5E9n5xOPyVwVLwv6bLTSaWBddBnCfSb85sZZW5ciF9ASv_TmzTFU3HcRlJPBSmBmvslJ_3dhEuuYLb5gfEYKw8ahTEUs9Nr49VBtnu-s1Y--7W9Kv1e7XebTvnXhrZ42e1cYEMDxGbgmAHw0fTnNAuBciEyspzTK1qCjMHkoxWkXPw',
-    distance: '500 m',
-    isOnline: true,
-    bio: 'New here 👋',
-    chatCost: 20,
-  },
-  '4': {
-    id: '4',
-    name: 'Chloe',
-    age: 24,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA2mvDb9KljJsn2Es0tMin1X8x7oWZzzM3oSqicuGZv59l_xX94LRX0yvfZVhu_71b1kQMWDjj1vAMUId07GeEgPrRa5dVad2KZVCEmT750i0TFrgMCxSmG1irjUPlGTnq4UJQfCwJ2e33JcF1mxTovGHbxGYH9pMtpzypp4kcuNNapws-eKB5NidDoGSmpYJO3-tQ9hO0iTXnTq-GCL0qvtkWkQgkJAPwl7fwYiCH_RoXSRDVToXhkpx8YMuZo6YVcUzl7EKDGW0M',
-    distance: '5 km',
-    isOnline: false,
-    occupation: 'Model',
-    chatCost: 20,
-  },
-  '5': {
-    id: '5',
-    name: 'Ava',
-    age: 22,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBJS0wNq7_DHk8VHFnFL9uBHN9_dgt046SyWzs9k_WQecLMOjUgs0OxGn5yAVpXGJ0trtwW2MkIXPiZcD3T9KtBy7uFn1ckM1xSYEg-85-HFtjhrUO3mJVkgOToIIDYn9TJ4gn9OBB1qSAqgVwuZeKvAcTXV-CIAm5MAIGjhy2TlmeWLnc-ew1SijQ6xHe5uTolQwSSJ0NoJDt6IsYsLQpvfql_VV4DiR0WsPreKJS-mkw9Z2-VygM5pbGasq81ij_Otu1K-sFC33E',
-    distance: '8 km',
-    isOnline: true,
-    bio: 'Looking for friends',
-    chatCost: 20,
-  },
-  '6': {
-    id: '6',
-    name: 'Mia',
-    age: 20,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBpxGBSL7DN3RZTDICRQvq0bH7dVoCLYq63lu3YCKiKDUE8PJLHpY_WX1U274YFz9O6Duw9sn7jGmiuIJMUK3F_c8li9Fo4dXiPW3-p6iGcIrw3O6qX79XjjjJvj6PQ1Y8294LjVroByfHmKpyhfpskyXTL1Rk_ivSgEuwxMWxy2jRwsyairF-hkeYGQmdclif4z8Jzbgp7V8jRZYnrWGWdGXnxQWkJPf2DXWpR1XeD5jWTLGeydgJcOpqlfrdQch5-ee8S5FsLkZE',
-    distance: '12 km',
-    isOnline: false,
-    occupation: 'Traveler',
-    chatCost: 20,
-  },
-};
+import userService from '../../../core/services/user.service';
 
 export const UserProfilePage = () => {
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (profileId) {
+      fetchProfile();
+    }
   }, [profileId]);
 
-  const profile = profileId ? mockProfiles[profileId] : null;
+  const fetchProfile = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await userService.getUserProfile(profileId!);
+
+      // Transform backend data to frontend format if needed
+      const sanitizedProfile = {
+        id: data.id || data._id,
+        name: data.profile?.name || data.name || 'Anonymous',
+        age: data.profile?.age || data.age,
+        avatar: data.profile?.photos?.[0]?.url || data.avatar || '',
+        distance: data.distance || 'Unknown distance',
+        isOnline: !!data.isOnline,
+        occupation: data.profile?.occupation || data.occupation || '',
+        chatCost: data.chatCost || 50,
+        bio: data.profile?.bio || data.bio || '',
+        interests: data.profile?.interests || data.interests || [],
+        photos: data.profile?.photos?.map((p: any) => p.url) || data.photos || []
+      };
+
+      setProfile(sanitizedProfile);
+    } catch (err: any) {
+      console.error('Failed to fetch profile:', err);
+      setError(err.response?.data?.message || 'Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleBackClick = () => {
     navigate(-1);
@@ -94,20 +59,27 @@ export const UserProfilePage = () => {
 
   const handleChatClick = () => {
     if (profile) {
-      // Navigate to chat - create new chat or open existing
       navigate(`/male/chat/${profile.id}`);
     }
   };
 
-  if (!profile) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark">
-        <div className="text-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+        <div className="text-center p-4">
           <MaterialSymbol name="person_off" size={48} className="text-gray-400 dark:text-gray-600 mb-4 mx-auto" />
-          <p className="text-gray-500 dark:text-[#cc8ea3]">Profile not found</p>
+          <p className="text-gray-500 dark:text-[#cc8ea3]">{error || 'Profile not found'}</p>
           <button
             onClick={handleBackClick}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-xl font-medium"
+            className="mt-4 px-4 py-2 bg-primary text-black rounded-xl font-medium"
           >
             Go Back
           </button>
@@ -179,17 +151,17 @@ export const UserProfilePage = () => {
           {profile.occupation && (
             <p className="text-base text-gray-600 dark:text-gray-400 mt-1">{profile.occupation}</p>
           )}
-          {(profile as any).bio && (
-            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">{(profile as any).bio}</p>
+          {profile.bio && (
+            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">{profile.bio}</p>
           )}
         </div>
 
         {/* Interests */}
-        {(profile as any).interests && (profile as any).interests.length > 0 && (
+        {profile.interests && profile.interests.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Interests</h3>
             <div className="flex flex-wrap gap-2">
-              {(profile as any).interests.map((interest: string, index: number) => (
+              {profile.interests.map((interest: string, index: number) => (
                 <span
                   key={index}
                   className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium"
@@ -202,11 +174,11 @@ export const UserProfilePage = () => {
         )}
 
         {/* Photo Gallery */}
-        {(profile as any).photos && (profile as any).photos.length > 1 && (
+        {profile.photos && profile.photos.length > 1 && (
           <div>
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Photos</h3>
             <div className="grid grid-cols-3 gap-2">
-              {(profile as any).photos.slice(1).map((photo: string, index: number) => (
+              {profile.photos.slice(1).map((photo: string, index: number) => (
                 <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
                   <img
                     src={photo}
@@ -222,18 +194,16 @@ export const UserProfilePage = () => {
         {/* Chat Button */}
         <button
           onClick={handleChatClick}
-          className={`w-full flex items-center justify-center gap-2 rounded-full py-4 text-base font-bold text-white transition-all active:scale-95 ${
-            isPrimaryButton
+          className={`w-full flex items-center justify-center gap-2 rounded-full py-4 text-base font-bold text-white transition-all active:scale-95 ${isPrimaryButton
               ? 'bg-primary hover:bg-yellow-400 shadow-lg shadow-primary/20'
               : 'bg-white/20 backdrop-blur-md hover:bg-white/30 border border-white/10'
-          }`}
+            }`}
         >
           <MaterialSymbol name="chat_bubble" size={20} />
           <span>Start Chat</span>
           <div
-            className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${
-              isPrimaryButton ? 'bg-white/20' : 'bg-black/20'
-            }`}
+            className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${isPrimaryButton ? 'bg-white/20' : 'bg-black/20'
+              }`}
           >
             <MaterialSymbol name="monetization_on" size={12} />
             <span>{profile.chatCost}</span>
@@ -246,4 +216,3 @@ export const UserProfilePage = () => {
     </div>
   );
 };
-

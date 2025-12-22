@@ -8,6 +8,22 @@ import * as adminService from '../../services/admin/adminService.js';
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * Get admin dashboard statistics
+ */
+export const getDashboardStats = async (req, res, next) => {
+    try {
+        const stats = await adminService.getDashboardStats();
+
+        res.status(200).json({
+            status: 'success',
+            data: { stats }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const getPendingFemales = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;

@@ -1,5 +1,6 @@
 import * as userService from '../../services/user/userService.js';
 import User from '../../models/User.js';
+import { calculateDistance, formatDistance, areCoordinatesValid } from '../../utils/distanceCalculator.js';
 
 export const resubmitVerification = async (req, res, next) => {
     try {
@@ -46,8 +47,8 @@ export const updateProfile = async (req, res, next) => {
  */
 export const discoverFemales = async (req, res, next) => {
     try {
-        const { filter = 'all', limit = 20, page = 1 } = req.query;
-        const cacheKey = `discover:females:${filter}:${page}:${limit}`;
+        const { filter = 'all', limit = 20, page = 1, language = 'en' } = req.query;
+        const cacheKey = `discover:females:${filter}:${page}:${limit}:${language}`;
 
         // Try cache first (but only for first page to keep it fresh)
         const { default: memoryCache, CACHE_TTL } = await import('../../core/cache/memoryCache.js');
@@ -83,27 +84,56 @@ export const discoverFemales = async (req, res, next) => {
             sortOption = { coinBalance: -1 };
         }
 
+        // CRITICAL: Select correct language fields based on user preference
+        // This uses cached translations from DB (no API calls!)
+        const nameField = language === 'hi' ? 'profile.name_hi' : 'profile.name_en';
+        const bioField = language === 'hi' ? 'profile.bio_hi' : 'profile.bio_en';
+
         // Use lean() for faster read-only queries
+        // Include coordinates for distance calculation (but DON'T send to frontend)
+        // Also select original name and bio as fallbacks
         const users = await User.find(query)
-            .select('profile.name profile.age profile.photos profile.bio profile.occupation profile.location.city isOnline lastSeen createdAt')
+            .select(`profile.name profile.bio ${nameField} ${bioField} profile.age profile.photos profile.occupation profile.location.city profile.latitude profile.longitude isOnline lastSeen createdAt`)
             .sort(sortOption)
             .skip(skip)
             .limit(parseInt(limit))
             .lean();
 
+        // Get current user's coordinates for distance calculation
+        const currentUser = await User.findById(req.user.id).select('profile.latitude profile.longitude').lean();
+        const hasCurrentUserCoords = areCoordinatesValid(currentUser?.profile?.latitude, currentUser?.profile?.longitude);
+
         // Transform for frontend
-        const profiles = users.map(user => ({
-            id: user._id,
-            name: user.profile?.name || 'Anonymous',
-            age: user.profile?.age,
-            avatar: user.profile?.photos?.[0]?.url || null,
-            bio: user.profile?.bio,
-            occupation: user.profile?.occupation,
-            location: user.profile?.location?.city,
-            isOnline: user.isOnline,
-            distance: '-- km',
-            chatCost: 50,
-        }));
+        const profiles = users.map(user => {
+            let distanceFormatted = 'Location not set';
+
+            // Calculate distance if both users have coordinates
+            if (hasCurrentUserCoords && areCoordinatesValid(user.profile?.latitude, user.profile?.longitude)) {
+                const distanceKm = calculateDistance(
+                    { lat: currentUser.profile.latitude, lng: currentUser.profile.longitude },
+                    { lat: user.profile.latitude, lng: user.profile.longitude }
+                );
+                distanceFormatted = formatDistance(distanceKm);
+            }
+
+            // CRITICAL: Return cached translation based on language preference
+            // No API calls - falling back to original if translation is missing
+            const name = (language === 'hi' ? user.profile?.name_hi : user.profile?.name_en) || user.profile?.name;
+            const bio = (language === 'hi' ? user.profile?.bio_hi : user.profile?.bio_en) || user.profile?.bio;
+
+            return {
+                id: user._id,
+                name: name || 'Anonymous',
+                age: user.profile?.age,
+                avatar: user.profile?.photos?.[0]?.url || null,
+                bio: bio,
+                occupation: user.profile?.occupation,
+                // REMOVED: location: user.profile?.location?.city, // Privacy: don't send exact location
+                isOnline: user.isOnline,
+                distance: distanceFormatted, // Send formatted distance instead
+                chatCost: 50,
+            };
+        });
 
         const total = await User.countDocuments(query);
 
@@ -156,6 +186,25 @@ export const getUserById = async (req, res, next) => {
             });
         }
 
+        // Get current user's coordinates for distance calculation
+        const currentUser = await User.findById(req.user.id).select('profile.latitude profile.longitude role').lean();
+        const hasCurrentUserCoords = areCoordinatesValid(currentUser?.profile?.latitude, currentUser?.profile?.longitude);
+
+        let distanceFormatted = 'Location not set';
+        let exactLocation = null;
+
+        // Admins see exact location (for verification purposes)
+        if (currentUser?.role === 'admin') {
+            exactLocation = user.profile?.locationString || user.profile?.location?.city || null;
+        } else if (hasCurrentUserCoords && areCoordinatesValid(user.profile?.latitude, user.profile?.longitude)) {
+            // Regular users see distance
+            const distanceKm = calculateDistance(
+                { lat: currentUser.profile.latitude, lng: currentUser.profile.longitude },
+                { lat: user.profile.latitude, lng: user.profile.longitude }
+            );
+            distanceFormatted = formatDistance(distanceKm);
+        }
+
         res.status(200).json({
             status: 'success',
             data: {
@@ -167,10 +216,20 @@ export const getUserById = async (req, res, next) => {
                     photos: user.profile?.photos || [],
                     bio: user.profile?.bio,
                     occupation: user.profile?.occupation,
-                    location: user.profile?.location?.city,
+                    city: user.profile?.location?.city || '',
+                    // Admins see exact location, others see distance
+                    ...(currentUser?.role === 'admin' ? { location: exactLocation } : { distance: distanceFormatted }),
                     interests: user.profile?.interests || [],
                     isOnline: user.isOnline,
                     lastSeen: user.lastSeen,
+                    // Include these fields for admin review
+                    phoneNumber: user.phoneNumber,
+                    role: user.role,
+                    approvalStatus: user.approvalStatus,
+                    verificationDocuments: user.verificationDocuments || {},
+                    createdAt: user.createdAt,
+                    isVerified: user.isVerified,
+                    isBlocked: user.isBlocked
                 }
             }
         });

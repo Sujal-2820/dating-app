@@ -68,10 +68,20 @@ export const isAuthenticated = (): boolean => {
 };
 
 /**
- * Clear all auth data
+ * Clear all auth data and cached user data
+ * CRITICAL: Preserves only language preference
  */
 export const clearAuth = (): void => {
-  removeAuthToken();
+  // Save language preference
+  const savedLanguage = localStorage.getItem('user_language');
+
+  // Clear EVERYTHING
+  localStorage.clear();
+
+  // Restore language preference
+  if (savedLanguage) {
+    localStorage.setItem('user_language', savedLanguage);
+  }
 };
 
 import axios from 'axios';

@@ -67,7 +67,23 @@ export const updateUserProfile = async (userId, data) => {
     if (data.city || data.location) {
         if (!user.profile.location) user.profile.location = {};
         if (data.city) user.profile.location.city = data.city;
-        // logic for raw location string if needed
+        if (data.location) user.profile.locationString = data.location;
+    }
+
+    // Handle coordinates from Google Maps Autocomplete
+    if (data.latitude && data.longitude) {
+        user.profile.latitude = data.latitude;
+        user.profile.longitude = data.longitude;
+
+        // Also update GeoJSON format for potential MongoDB geospatial queries
+        if (!user.profile.location) user.profile.location = {};
+        if (!user.profile.location.coordinates) {
+            user.profile.location.coordinates = {
+                type: 'Point',
+                coordinates: [0, 0]
+            };
+        }
+        user.profile.location.coordinates.coordinates = [data.longitude, data.latitude]; // [lng, lat]
     }
 
     if (data.interests) {

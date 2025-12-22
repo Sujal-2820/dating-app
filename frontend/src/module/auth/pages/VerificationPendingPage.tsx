@@ -4,10 +4,12 @@ import { useAuth } from '../../../core/context/AuthContext';
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { getAuthToken } from '../../../core/utils/auth';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const VerificationPendingPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +48,7 @@ export const VerificationPendingPage = () => {
 
     const handleResubmit = async () => {
         if (!aadhaarFile) {
-            setError('Please select a document to upload.');
+            setError(t('pleaseSelectDocument'));
             return;
         }
 
@@ -79,13 +81,13 @@ export const VerificationPendingPage = () => {
                 }
             });
 
-            setSuccessMsg('Verification document submitted successfully! Please wait for admin approval.');
+            setSuccessMsg(t('verificationSubmittedSuccess'));
             setAadhaarFile(null);
             setAadhaarPreview(null);
 
         } catch (err: any) {
             console.error('Resubmission error:', err);
-            setError(err.response?.data?.message || 'Failed to submit document.');
+            setError(err.response?.data?.message || t('failedToSubmitDocument'));
         } finally {
             setIsSubmitting(false);
         }
@@ -105,22 +107,22 @@ export const VerificationPendingPage = () => {
 
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                     {user?.approvalStatus === 'rejected'
-                        ? 'Account Rejected'
-                        : (user?.approvalStatus === 'resubmit_requested' ? 'Correction Required' : 'Verification Pending')}
+                        ? t('accountRejected')
+                        : (user?.approvalStatus === 'resubmit_requested' ? t('correctionRequired') : t('verificationPending'))}
                 </h2>
 
                 <p className="text-gray-600 mb-6">
                     {user?.approvalStatus === 'rejected'
-                        ? 'Unfortunately, your profile has been rejected by the admin team and you cannot access the platform.'
+                        ? t('accountRejectedMessage')
                         : (user?.approvalStatus === 'resubmit_requested'
-                            ? 'The admin team has requested you to resubmit your verification documents. Please review the reason below.'
-                            : 'Thank you for signing up! Your profile is currently under review by our admin team. This process usually takes 24-48 hours.')}
+                            ? t('correctionRequiredMessage')
+                            : t('verificationPendingDesc'))}
                 </p>
 
                 {user?.rejectionReason && (
                     <div className={`${user.approvalStatus === 'rejected' ? 'bg-gray-50 border-gray-200' : 'bg-red-50 border-red-200'} border rounded-lg p-4 mb-6 text-left`}>
                         <p className={`text-sm ${user.approvalStatus === 'rejected' ? 'text-gray-800' : 'text-red-800'} font-semibold mb-1`}>
-                            {user.approvalStatus === 'rejected' ? 'Rejection Reason:' : 'Reason for Correction:'}
+                            {user.approvalStatus === 'rejected' ? t('rejectionReason') : t('reasonForCorrection')}
                         </p>
                         <p className={`text-sm ${user.approvalStatus === 'rejected' ? 'text-gray-700' : 'text-red-700'}`}>{user.rejectionReason}</p>
                     </div>
@@ -134,12 +136,12 @@ export const VerificationPendingPage = () => {
                                 className="border-2 border-dashed border-pink-300 rounded-lg p-6 cursor-pointer hover:bg-pink-100 transition-colors"
                             >
                                 <MaterialSymbol name="upload_file" size={32} className="mx-auto text-pink-400 mb-2" />
-                                <span className="text-pink-600 font-medium block">Upload New Document</span>
-                                <p className="text-xs text-pink-500 mt-1">Clear photo of Aadhaar Card</p>
+                                <span className="text-pink-600 font-medium block">{t('uploadNewDocument')}</span>
+                                <p className="text-xs text-pink-500 mt-1">{t('clearPhotoOfAadhaar')}</p>
                             </div>
                         ) : (
                             <div className="relative rounded-lg overflow-hidden border border-pink-200">
-                                <img src={aadhaarPreview} alt="Preview" className="w-full h-48 object-cover" />
+                                <img src={aadhaarPreview} alt={t('preview')} className="w-full h-48 object-cover" />
                                 <button
                                     onClick={() => { setAadhaarFile(null); setAadhaarPreview(null); }}
                                     className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md"
@@ -157,7 +159,7 @@ export const VerificationPendingPage = () => {
                             disabled={isSubmitting || !aadhaarFile}
                             className="mt-4 w-full py-2 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 disabled:opacity-50"
                         >
-                            {isSubmitting ? 'Submitting...' : 'Resubmit Verification'}
+                            {isSubmitting ? t('submitting') : t('resubmitVerification')}
                         </button>
                     </div>
                 )}
@@ -169,7 +171,7 @@ export const VerificationPendingPage = () => {
                 ) : (
                     user?.approvalStatus !== 'rejected' && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-800">
-                            You cannot access the dashboard until your profile is approved. Please check back later.
+                            {t('cannotAccessDashboard')}
                         </div>
                     )
                 )}
@@ -179,7 +181,7 @@ export const VerificationPendingPage = () => {
                     className="text-gray-500 hover:text-gray-700 font-medium flex items-center justify-center mx-auto"
                 >
                     <MaterialSymbol name="logout" size={20} className="mr-2" />
-                    Sign Out
+                    {t('signOut')}
                 </button>
             </div>
         </div>

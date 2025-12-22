@@ -10,6 +10,7 @@ import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { FemaleSidebar } from '../components/FemaleSidebar';
 import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
+import { LocationPromptModal } from '../../../shared/components/LocationPromptModal';
 import type { FemaleDashboardData } from '../types/female.types';
 
 // Mock data - replace with actual API calls
@@ -75,8 +76,9 @@ const quickActions = [
 
 export const FemaleDashboard = () => {
   const [dashboardData] = useState<FemaleDashboardData>(mockDashboardData);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth(); // Get user from auth context
+  const { user, updateUser } = useAuth(); // Get user from auth context
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
 
   useEffect(() => {
@@ -97,6 +99,11 @@ export const FemaleDashboard = () => {
     // Protect route: Redirect if not approved
     if (user && user.role === 'female' && user.approvalStatus !== 'approved') {
       navigate('/verification-pending');
+    }
+
+    // Check if user needs to set location (only for approved females)
+    if (user && user.role === 'female' && user.approvalStatus === 'approved' && (!user.location || user.location.trim() === '')) {
+      setShowLocationPrompt(true);
     }
   }, [user, navigate]);
 
@@ -140,8 +147,23 @@ export const FemaleDashboard = () => {
     }
   };
 
+  const handleLocationSave = (location: string) => {
+    // Update user context
+    if (updateUser) {
+      updateUser({ location });
+    }
+    setShowLocationPrompt(false);
+  };
+
   return (
     <div className="relative flex w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden pb-20">
+      {/* Location Prompt Modal */}
+      {showLocationPrompt && (
+        <LocationPromptModal
+          onSave={handleLocationSave}
+          onClose={() => setShowLocationPrompt(false)}
+        />
+      )}
       {/* Top Navbar */}
       <FemaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
 

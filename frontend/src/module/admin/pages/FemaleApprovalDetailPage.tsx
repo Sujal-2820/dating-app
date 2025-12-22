@@ -8,38 +8,6 @@ import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { FemaleApproval } from '../types/admin.types';
 import * as adminService from '../services/admin.service';
 
-// Mock data fallback if service fetch fails or for initial design
-const mockApproval: FemaleApproval = {
-    userId: '2',
-    user: {
-        id: '2',
-        email: 'sarah.smith@example.com',
-        name: 'Sarah Smith',
-        role: 'female',
-        isBlocked: false,
-        isVerified: false,
-        phoneNumber: '+91 98765 43210',
-        createdAt: '2024-01-05T14:30:00Z',
-        lastLoginAt: new Date(Date.now() - 7200000).toISOString(),
-    },
-    profile: {
-        age: 25,
-        city: 'Delhi',
-        bio: 'Fitness enthusiast and food lover. Always up for new adventures! verification pending..',
-        photos: [
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuC81hkr7IkYx1ryaWF6XEKAw50xyRvJBGMogrF-zD5ChG66QAopPNWZvczWXWXasmarotX6xfLiXqIGT-HGa4N4mpnfl6tHPN16fBm5L0ebBFFR6YnfhOhNpt_PXB-rNdw4iozv00ERuqlCKno-B1P2UZ6g-dU5YY4Or_m3Xdgk4_MrxVK9o6Uz70Vr_fXQdMhSrjjCl7s_yQE_R1O9FNwroQqdfSFv6kiO76qVxmnHDhLrYwRWtfdSdegsNjAzgAdgkUZgUomw2j8',
-        ],
-    },
-    verificationDocuments: {
-        aadhaarCard: {
-            url: 'https://uidai.gov.in/images/aadhaar_card_sample.png', // Placeholder
-            verified: false
-        }
-    },
-    approvalStatus: 'pending',
-    submittedAt: '2024-01-05T14:30:00Z',
-};
-
 export const FemaleApprovalDetailPage = () => {
     const { userId } = useParams<{ userId: string }>();
     const navigate = useNavigate();
@@ -52,17 +20,74 @@ export const FemaleApprovalDetailPage = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        // In a real app, we would fetch specific approval by ID. 
-        // For now, we simulate fetching or finding in a list.
-        // If we had a global state for approvals, we could pick from there.
-        // Here we'll just set the mock data after a small delay to simulate loading.
+
         const loadData = async () => {
+            if (!userId) {
+                setIsLoading(false);
+                return;
+            }
+
             setIsLoading(true);
-            // Simulate API call
-            await new Promise(r => setTimeout(r, 600));
-            setApproval(mockApproval);
-            setIsLoading(false);
+            try {
+                const token = localStorage.getItem('matchmint_auth_token');
+
+                console.log('🔍 [FemaleApproval] Fetching user details for ID:', userId);
+
+                // Fetch user details from backend
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    console.error('❌ [FemaleApproval] API Response failed:', response.status, response.statusText);
+                    throw new Error('Failed to fetch user details');
+                }
+
+                const data = await response.json();
+                console.log('📦 [FemaleApproval] Raw API Response:', data);
+
+                const user = data.data.user;
+                console.log('👤 [FemaleApproval] Extracted user object:', user);
+
+                // Transform to FemaleApproval format
+                const approvalData: FemaleApproval = {
+                    userId: user.id || user._id,
+                    user: {
+                        id: user.id || user._id,
+                        phoneNumber: user.phoneNumber,
+                        name: user.name,
+                        role: user.role,
+                        isBlocked: user.isBlocked || false,
+                        isVerified: user.isVerified || false,
+                        createdAt: user.createdAt,
+                        lastLoginAt: user.lastSeen
+                    },
+                    profile: {
+                        age: user.age,
+                        city: user.city || '',
+                        bio: user.bio || '',
+                        // Extract URL from photo objects: [{url: '...'}, ...] => ['url1', 'url2', ...]
+                        photos: (user.photos || []).map((photo: any) => typeof photo === 'string' ? photo : photo.url)
+                    },
+                    verificationDocuments: user.verificationDocuments || {},
+                    approvalStatus: user.approvalStatus || 'pending',
+                    submittedAt: user.createdAt
+                };
+
+                console.log('📸 [FemaleApproval] Photos extracted:', approvalData.profile.photos);
+                console.log('📄 [FemaleApproval] Verification docs:', approvalData.verificationDocuments);
+                console.log('✅ [FemaleApproval] Transformed approval data:', approvalData);
+                setApproval(approvalData);
+            } catch (error) {
+                console.error('Failed to load user details:', error);
+                setApproval(null);
+            } finally {
+                setIsLoading(false);
+            }
         };
+
         loadData();
     }, [userId]);
 

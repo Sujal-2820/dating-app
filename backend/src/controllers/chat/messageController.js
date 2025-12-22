@@ -339,15 +339,15 @@ export const sendHiMessage = async (req, res, next) => {
 };
 
 /**
- * Send a gift
+ * Send one or more gifts
  */
 export const sendGift = async (req, res, next) => {
     try {
         const senderId = req.user.id;
-        const { chatId, giftId } = req.body;
+        const { chatId, giftIds } = req.body; // Modified to accept array of giftIds
 
-        if (!giftId) {
-            throw new BadRequestError('Gift ID is required');
+        if (!giftIds || !Array.isArray(giftIds) || giftIds.length === 0) {
+            throw new BadRequestError('At least one Gift ID is required');
         }
 
         // Verify chat
@@ -360,11 +360,14 @@ export const sendGift = async (req, res, next) => {
             throw new NotFoundError('Chat not found');
         }
 
-        // Get gift
-        const gift = await Gift.findOne({ _id: giftId, isActive: true });
-        if (!gift) {
-            throw new NotFoundError('Gift not found');
+        // Get gifts
+        const gifts = await Gift.find({ _id: { $in: giftIds }, isActive: true });
+        if (gifts.length === 0) {
+            throw new NotFoundError('Gifts not found');
         }
+
+        // Calculate total cost
+        const totalCost = gifts.reduce((sum, gift) => sum + gift.cost, 0);
 
         // Get receiver
         const otherParticipant = chat.participants.find(
@@ -373,7 +376,7 @@ export const sendGift = async (req, res, next) => {
         const receiverId = otherParticipant.userId;
 
         // Validate and deduct coins
-        await dataValidation.validateMessageSend(senderId, gift.cost);
+        await dataValidation.validateMessageSend(senderId, totalCost);
 
         // Execute atomic transaction
         const result = await transactionManager.executeTransaction([
@@ -381,7 +384,7 @@ export const sendGift = async (req, res, next) => {
                 // Deduct coins from sender
                 const sender = await User.findById(senderId).session(session);
                 const balanceBefore = sender.coinBalance;
-                sender.coinBalance -= gift.cost;
+                sender.coinBalance -= totalCost;
                 await sender.save({ session });
 
                 // Create transaction for sender
@@ -389,19 +392,19 @@ export const sendGift = async (req, res, next) => {
                     userId: senderId,
                     type: 'gift_sent',
                     direction: 'debit',
-                    amountCoins: gift.cost,
+                    amountCoins: totalCost,
                     status: 'completed',
                     balanceBefore,
                     balanceAfter: sender.coinBalance,
                     relatedUserId: receiverId,
                     relatedChatId: chatId,
-                    description: `Sent ${gift.name} gift`,
+                    description: `Sent ${gifts.length} gifts: ${gifts.map(g => g.name).join(', ')}`,
                 }], { session });
 
                 // Credit coins to receiver
                 const receiver = await User.findById(receiverId).session(session);
                 const receiverBalanceBefore = receiver.coinBalance;
-                receiver.coinBalance += gift.cost;
+                receiver.coinBalance += totalCost;
                 await receiver.save({ session });
 
                 // Create transaction for receiver
@@ -409,13 +412,13 @@ export const sendGift = async (req, res, next) => {
                     userId: receiverId,
                     type: 'gift_received',
                     direction: 'credit',
-                    amountCoins: gift.cost,
+                    amountCoins: totalCost,
                     status: 'completed',
                     balanceBefore: receiverBalanceBefore,
                     balanceAfter: receiver.coinBalance,
                     relatedUserId: senderId,
                     relatedChatId: chatId,
-                    description: `Received ${gift.name} gift`,
+                    description: `Received ${gifts.length} gifts from user`,
                 }], { session });
 
                 return { senderTx: senderTx[0], newBalance: sender.coinBalance };
@@ -423,18 +426,20 @@ export const sendGift = async (req, res, next) => {
         ]);
 
         // Create gift message
+        const messageGifts = gifts.map(gift => ({
+            giftId: gift._id,
+            giftName: gift.name,
+            giftCost: gift.cost,
+            giftImage: gift.imageUrl,
+        }));
+
         const message = await Message.create({
             chatId,
             senderId,
             receiverId,
-            content: `Sent a ${gift.name}`,
+            content: `Sent ${gifts.length} gift${gifts.length > 1 ? 's' : ''}`,
             messageType: 'gift',
-            gift: {
-                giftId: gift._id,
-                giftName: gift.name,
-                giftCost: gift.cost,
-                giftImage: gift.imageUrl,
-            },
+            gifts: messageGifts,
             status: 'sent',
             transactionId: result.senderTx._id,
         });
@@ -491,7 +496,7 @@ export const sendGift = async (req, res, next) => {
             data: {
                 message: populatedMessage,
                 newBalance: result.newBalance,
-                coinsSpent: gift.cost,
+                coinsSpent: totalCost,
                 levelUp: levelUpInfo,
                 intimacy: getLevelInfo(chat.totalMessageCount),
             }

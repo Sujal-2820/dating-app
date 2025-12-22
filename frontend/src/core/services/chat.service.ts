@@ -23,8 +23,10 @@ const getAuthHeaders = () => {
  * Get user's chat list
  */
 export const getMyChatList = async () => {
+    const language = localStorage.getItem('user_language') || 'en';
     const response = await axios.get(`${API_URL}/chat/chats`, {
         headers: getAuthHeaders(),
+        params: { language }
     });
     return response.data.data.chats;
 };
@@ -33,11 +35,13 @@ export const getMyChatList = async () => {
  * Get or create chat with a user
  */
 export const getOrCreateChat = async (otherUserId: string) => {
+    const language = localStorage.getItem('user_language') || 'en';
     const response = await axios.post(
         `${API_URL}/chat/chats`,
         { otherUserId },
         {
             headers: getAuthHeaders(),
+            params: { language }
         }
     );
     return response.data.data.chat;
@@ -113,10 +117,10 @@ export const sendHiMessage = async (receiverId: string) => {
 /**
  * Send gift
  */
-export const sendGift = async (chatId: string, giftId: string) => {
+export const sendGift = async (chatId: string, giftIds: string[]) => {
     const response = await axios.post(
         `${API_URL}/chat/messages/gift`,
-        { chatId, giftId },
+        { chatId, giftIds },
         {
             headers: getAuthHeaders(),
         }

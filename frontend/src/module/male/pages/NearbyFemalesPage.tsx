@@ -33,7 +33,17 @@ export const NearbyFemalesPage = () => {
       else if (activeFilter === 'popular') apiFilter = 'popular';
 
       const data = await userService.discoverFemales(apiFilter);
-      setProfiles(data.profiles || []);
+      // DEFENSIVE: Ensure profiles is always an array and handle missing properties
+      const sanitizedProfiles = (data.profiles || []).map((p: any) => ({
+        ...p,
+        id: p.id || p._id,
+        name: p.name || 'Anonymous',
+        avatar: p.avatar || p.profile?.photos?.[0]?.url || '',
+        bio: p.bio || p.profile?.bio || '',
+        location: p.location || p.profile?.location?.city || '',
+        age: p.age || p.profile?.age
+      }));
+      setProfiles(sanitizedProfiles);
     } catch (err: any) {
       console.error('Failed to fetch profiles:', err);
       setError(err.response?.data?.message || 'Failed to load profiles');
@@ -169,12 +179,10 @@ export const NearbyFemalesPage = () => {
             <button
               onClick={() => handleSendHi(profile.id)}
               disabled={sendingHiTo === profile.id}
-              className="px-3 py-2 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform disabled:opacity-50"
+              className="px-4 py-2 rounded-full text-sm font-bold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform disabled:opacity-50"
             >
               {sendingHiTo === profile.id ? (
-                <span className="flex items-center gap-1">
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                </span>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 'Hi'
               )}

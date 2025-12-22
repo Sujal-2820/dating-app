@@ -2,12 +2,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 import type { LoginData } from '../types/auth.types';
 
 import { loginWithOtp } from '../services/auth.service';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation(); // ADD THIS LINE
   const [formData, setFormData] = useState<{ phone: string }>({
     phone: '',
   });
@@ -19,9 +21,9 @@ export const LoginPage = () => {
     const newErrors: { phone?: string } = {};
 
     if (!formData.phone?.trim()) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = t('Phone number is required'); // TRANSLATE ERROR MESSAGES
     } else if (!/^\d{10}$/.test(formData.phone)) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
+      newErrors.phone = t('Please enter a valid 10-digit phone number');
     }
 
     setErrors(newErrors);
@@ -39,7 +41,7 @@ export const LoginPage = () => {
           state: { mode: 'login', phoneNumber: formData.phone }
         });
       } catch (err: any) {
-        setApiError(err.message || 'Login request failed');
+        setApiError(err.message || t('Login request failed')); // TRANSLATE
       } finally {
         setIsLoading(false);
       }
@@ -63,8 +65,8 @@ export const LoginPage = () => {
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
             MatchMint
           </h1>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Login to continue your journey</p>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('Welcome Back')}</h2>
+          <p className="text-gray-600">{t('Login to continue your journey')}</p>
         </div>
 
         {/* Form */}
@@ -73,7 +75,7 @@ export const LoginPage = () => {
             {/* Phone Input */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Number
+                {t('Contact Number')} {/* TRANSLATE ALL LABELS */}
               </label>
               <div className="flex">
                 <div className="px-4 py-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg flex items-center">
@@ -97,7 +99,7 @@ export const LoginPage = () => {
 
             {/* Info Text */}
             <p className="text-sm text-gray-600 text-center">
-              We'll send you a verification code to continue
+              {t('We will send you a verification code to continue')} {/* TRANSLATE */}
             </p>
 
             {apiError && (
@@ -112,19 +114,19 @@ export const LoginPage = () => {
               disabled={isLoading}
               className={`w-full py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-lg hover:from-pink-600 hover:to-pink-700 transform hover:scale-105 transition-all duration-200 shadow-lg ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {isLoading ? 'Sending Code...' : 'Continue'}
+              {isLoading ? t('Sending Code...') : t('Continue')} {/* TRANSLATE BUTTON TEXT */}
             </button>
           </form>
 
           {/* Signup Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Don't have an account?{' '}
+              {t('Do not have an account?')}{' '}
               <button
                 onClick={() => navigate('/signup')}
                 className="text-pink-600 font-semibold hover:text-pink-700"
               >
-                Sign Up
+                {t('Sign Up')}
               </button>
             </p>
           </div>

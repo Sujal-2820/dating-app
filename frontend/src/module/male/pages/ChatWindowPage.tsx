@@ -197,14 +197,14 @@ export const ChatWindowPage = () => {
   };
 
   // Send gift
-  const handleSendGift = async (giftId: string) => {
+  const handleSendGift = async (giftIds: string[]) => {
     if (!chatId || isSending) return;
 
     try {
       setIsSending(true);
       setError(null);
 
-      const result = await chatService.sendGift(chatId, giftId);
+      const result = await chatService.sendGift(chatId, giftIds);
 
       // Update messages
       setMessages(prev => [...prev, result.message]);
@@ -362,7 +362,7 @@ export const ChatWindowPage = () => {
                 type: message.messageType === 'video_call' ? 'text' : message.messageType as any,
                 isSent,
                 readStatus: message.status === 'failed' ? 'sent' : message.status as any,
-                gifts: message.gift ? [message.gift] as any : undefined,
+                gifts: message.gifts as any,
               }}
             />
           );

@@ -51,15 +51,17 @@ const messageSchema = new mongoose.Schema(
       },
     ],
     // Gift-specific fields
-    gift: {
-      giftId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Gift',
+    gifts: [
+      {
+        giftId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Gift',
+        },
+        giftName: String,
+        giftCost: Number,
+        giftImage: String,
       },
-      giftName: String,
-      giftCost: Number,
-      giftImage: String,
-    },
+    ],
     // Video call fields
     videoCall: {
       callId: String,

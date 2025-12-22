@@ -109,7 +109,7 @@ const gifts = [
     {
         name: 'Rose',
         category: 'romantic',
-        imageUrl: '/assets/gifts/rose.png',
+        imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTX2X2b9R5sx_RhsX2VbHIQ7UcTPu5e9SpVKg&s',
         cost: 50,
         description: 'A beautiful red rose',
         isActive: true,
@@ -118,7 +118,7 @@ const gifts = [
     {
         name: 'Heart',
         category: 'romantic',
-        imageUrl: '/assets/gifts/heart.png',
+        imageUrl: 'https://cdn-icons-png.flaticon.com/512/833/833472.png',
         cost: 100,
         description: 'Show your love',
         isActive: true,
@@ -127,7 +127,7 @@ const gifts = [
     {
         name: 'Teddy Bear',
         category: 'romantic',
-        imageUrl: '/assets/gifts/teddy.png',
+        imageUrl: 'https://cdn-icons-png.flaticon.com/512/3069/3069172.png',
         cost: 200,
         description: 'A cuddly teddy bear',
         isActive: true,
@@ -136,7 +136,7 @@ const gifts = [
     {
         name: 'Diamond Ring',
         category: 'special',
-        imageUrl: '/assets/gifts/ring.png',
+        imageUrl: 'https://cdn.pixabay.com/photo/2021/03/24/13/24/ring-6120138_1280.png',
         cost: 500,
         description: 'Premium diamond ring',
         isActive: true,
@@ -145,7 +145,7 @@ const gifts = [
     {
         name: 'Bouquet',
         category: 'celebration',
-        imageUrl: '/assets/gifts/bouquet.png',
+        imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV8XtmBcY7iDWHrRvq2HbnuRMXTufJOLLZqg&s',
         cost: 300,
         description: 'Beautiful flower bouquet',
         isActive: true,
@@ -154,7 +154,7 @@ const gifts = [
     {
         name: 'Cake',
         category: 'celebration',
-        imageUrl: '/assets/gifts/cake.png',
+        imageUrl: 'https://cdn-icons-png.flaticon.com/512/3132/3132693.png',
         cost: 150,
         description: 'Sweet celebration cake',
         isActive: true,
@@ -163,7 +163,7 @@ const gifts = [
     {
         name: 'Thumbs Up',
         category: 'appreciation',
-        imageUrl: '/assets/gifts/thumbsup.png',
+        imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvSSwzDVs8q2Rdgy5zAHe_d34cmq2FxfbrNQ&s',
         cost: 25,
         description: 'Show appreciation',
         isActive: true,
@@ -172,7 +172,7 @@ const gifts = [
     {
         name: 'Laughing Emoji',
         category: 'funny',
-        imageUrl: '/assets/gifts/laugh.png',
+        imageUrl: 'https://static.vecteezy.com/system/resources/thumbnails/014/438/856/small/rolling-on-the-floor-laughing-large-size-of-yellow-emoji-smile-vector.jpg',
         cost: 30,
         description: 'Share a laugh',
         isActive: true,

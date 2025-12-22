@@ -16,6 +16,7 @@ import { getLevelInfo } from '../../utils/intimacyLevel.js';
 export const getMyChatList = async (req, res, next) => {
     try {
         const userId = req.user.id;
+        const { language = 'en' } = req.query;
 
         const chats = await Chat.find({
             'participants.userId': userId,
@@ -44,14 +45,20 @@ export const getMyChatList = async (req, res, next) => {
                 return null;
             }
 
+            // CRITICAL: Handle translated names with original fallback
+            const otherUserDoc = otherParticipant.userId;
+            const name = (language === 'hi' ? otherUserDoc.profile?.name_hi : otherUserDoc.profile?.name_en) ||
+                otherUserDoc.profile?.name ||
+                `User ${otherUserDoc.phoneNumber}`;
+
             return {
                 _id: chat._id,
                 otherUser: {
-                    _id: otherParticipant.userId._id,
-                    name: otherParticipant.userId.profile?.name || `User ${otherParticipant.userId.phoneNumber}`,
-                    avatar: otherParticipant.userId.profile?.photos?.[0]?.url || null,
-                    isOnline: otherParticipant.userId.isOnline,
-                    lastSeen: otherParticipant.userId.lastSeen,
+                    _id: otherUserDoc._id,
+                    name: name,
+                    avatar: otherUserDoc.profile?.photos?.[0]?.url || null,
+                    isOnline: otherUserDoc.isOnline,
+                    lastSeen: otherUserDoc.lastSeen,
                 },
                 lastMessage: chat.lastMessage,
                 lastMessageAt: chat.lastMessageAt,
@@ -86,10 +93,22 @@ export const getOrCreateChat = async (req, res, next) => {
             throw new BadRequestError('Cannot create chat with yourself');
         }
 
+        // Get current user info
+        const currentUser = await User.findById(userId).select('role');
+
         // Check if other user exists
-        const otherUser = await User.findById(otherUserId);
+        const otherUser = await User.findById(otherUserId).select('role');
         if (!otherUser) {
             throw new NotFoundError('User not found');
+        }
+
+        // CRITICAL: Gender validation - prevent same-gender chats
+        // Males can only chat with females, females can only chat with males
+        // Admins can chat with anyone
+        if (currentUser.role !== 'admin' && otherUser.role !== 'admin') {
+            if (currentUser.role === otherUser.role) {
+                throw new BadRequestError(`${currentUser.role === 'male' ? 'Males' : 'Females'} can only chat with ${currentUser.role === 'male' ? 'females' : 'males'}`);
+            }
         }
 
         // Find existing chat

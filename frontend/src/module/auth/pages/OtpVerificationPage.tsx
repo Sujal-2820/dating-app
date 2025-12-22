@@ -4,6 +4,7 @@ import axios from 'axios';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { requestSignupOtp } from '../services/auth.service';
 import { useAuth } from '../../../core/context/AuthContext';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -14,6 +15,7 @@ interface LocationState {
 }
 
 export const OtpVerificationPage = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const { login } = useAuth();
@@ -101,6 +103,13 @@ export const OtpVerificationPage = () => {
             const response = await axios.post(endpoint, payload);
 
             if (response.data.token && response.data.data.user) {
+                // CRITICAL: Clear all old user data from localStorage before login
+                const savedLanguage = localStorage.getItem('user_language');
+                localStorage.clear();
+                if (savedLanguage) {
+                    localStorage.setItem('user_language', savedLanguage); // Preserve language preference
+                }
+
                 login(response.data.token, response.data.data.user);
 
                 // Navigation based on role
@@ -118,7 +127,7 @@ export const OtpVerificationPage = () => {
                 }
             }
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Invalid OTP');
+            setError(err.response?.data?.message || t('invalidOTP'));
         } finally {
             setIsLoading(false);
         }
@@ -132,10 +141,10 @@ export const OtpVerificationPage = () => {
                         <MaterialSymbol name="lock" className="text-pink-600" size={24} />
                     </div>
                     <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                        Verify your phone
+                        {t('verifyYourPhone')}
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
-                        We sent a code to +91 {state?.phoneNumber}
+                        {t('enterOTPSentTo')} +91 {state?.phoneNumber}
                     </p>
                 </div>
 
@@ -172,7 +181,7 @@ export const OtpVerificationPage = () => {
                                     disabled={isLoading || otp.join('').length !== 6}
                                     className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:bg-gray-400"
                                 >
-                                    {isLoading ? 'Verifying...' : 'Verify'}
+                                    {isLoading ? t('loading') : t('verify')}
                                 </button>
                             </div>
                         </form>
@@ -183,7 +192,7 @@ export const OtpVerificationPage = () => {
                                 disabled={timer > 0 || isLoading}
                                 className="text-sm font-medium text-pink-600 hover:text-pink-500 disabled:text-gray-400"
                             >
-                                {timer > 0 ? `Resend code in ${timer}s` : 'Resend Code'}
+                                {timer > 0 ? `${t('resendIn')} ${timer}s` : t('resendOTP')}
                             </button>
                         </div>
                     </div>

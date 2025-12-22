@@ -3,6 +3,7 @@ import { AuthProvider } from './core/context/AuthContext';
 import { SocketProvider } from './core/context/SocketContext';
 import { GlobalStateProvider } from './core/context/GlobalStateContext';
 import { VideoCallProvider } from './core/context/VideoCallContext';
+import './core/i18n/i18n.config'; // Initialize i18next
 import { VideoCallModal } from './shared/components/VideoCallModal';
 import { MaleDashboard } from './module/male/pages/MaleDashboard';
 import { NearbyFemalesPage } from './module/male/pages/NearbyFemalesPage';
@@ -53,6 +54,7 @@ import { SettingsPage } from './module/admin/pages/SettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Auth pages
+import { LanguageSelectionPage } from './module/auth/pages/LanguageSelectionPage';
 import { SignupPage } from './module/auth/pages/SignupPage';
 import { LoginPage } from './module/auth/pages/LoginPage';
 import { OtpVerificationPage } from './module/auth/pages/OtpVerificationPage';
@@ -68,8 +70,11 @@ function App() {
           <VideoCallProvider>
             <BrowserRouter>
               <Routes>
-                {/* Landing page → default to Discover */}
-                <Route path="/" element={<Navigate to="/male/discover" replace />} />
+                {/* Landing page → default to language selection */}
+                <Route path="/" element={<Navigate to="/select-language" replace />} />
+
+                {/* Language Selection (First screen) */}
+                <Route path="/select-language" element={<LanguageSelectionPage />} />
 
                 {/* Auth routes */}
                 <Route path="/signup" element={<SignupPage />} />
@@ -124,20 +129,20 @@ function App() {
                   <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
                   <Route path="/admin/settings" element={<SettingsPage />} />
                 </Route>
-              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/users" element={<UsersManagementPage />} />
-                <Route path="/admin/users/:userId" element={<UserDetailPage />} />
-                <Route path="/admin/female-approval" element={<FemaleApprovalPage />} />
-                <Route path="/admin/female-approval/:userId" element={<FemaleApprovalDetailPage />} />
-                <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
-                <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
-                <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
-                <Route path="/admin/coin-economy" element={<CoinEconomyPage />} />
-                <Route path="/admin/transactions" element={<TransactionsPage />} />
-                <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
-                <Route path="/admin/settings" element={<SettingsPage />} />
-              </Route>
+                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/users" element={<UsersManagementPage />} />
+                  <Route path="/admin/users/:userId" element={<UserDetailPage />} />
+                  <Route path="/admin/female-approval" element={<FemaleApprovalPage />} />
+                  <Route path="/admin/female-approval/:userId" element={<FemaleApprovalDetailPage />} />
+                  <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
+                  <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
+                  <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
+                  <Route path="/admin/coin-economy" element={<CoinEconomyPage />} />
+                  <Route path="/admin/transactions" element={<TransactionsPage />} />
+                  <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+                  <Route path="/admin/settings" element={<SettingsPage />} />
+                </Route>
 
                 {/* Catch-all route for 404 */}
                 <Route path="*" element={<NotFoundPage />} />

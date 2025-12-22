@@ -30,12 +30,12 @@ export interface Message {
     };
     content: string;
     messageType: 'text' | 'image' | 'gift' | 'video_call';
-    gift?: {
+    gifts?: Array<{
         giftId: string;
         giftName: string;
         giftCost: number;
         giftImage: string;
-    };
+    }>;
     status: 'sent' | 'delivered' | 'read' | 'failed';
     createdAt: string | Date;
     deliveredAt?: string | Date;

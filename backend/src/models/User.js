@@ -89,12 +89,30 @@ const userSchema = new mongoose.Schema(
         type: String,
         trim: true,
       },
+      // Multilingual name fields for translation caching
+      name_en: {
+        type: String,
+        trim: true,
+      },
+      name_hi: {
+        type: String,
+        trim: true,
+      },
       age: {
         type: Number,
         min: [18, 'Age must be at least 18'],
         max: [100, 'Age must be less than 100'],
       },
       bio: {
+        type: String,
+        maxlength: [500, 'Bio cannot exceed 500 characters'],
+      },
+      // Multilingual bio fields for translation caching
+      bio_en: {
+        type: String,
+        maxlength: [500, 'Bio cannot exceed 500 characters'],
+      },
+      bio_hi: {
         type: String,
         maxlength: [500, 'Bio cannot exceed 500 characters'],
       },
@@ -111,6 +129,23 @@ const userSchema = new mongoose.Schema(
           },
         },
       ],
+      // Simple location fields for easy access (added for Google Maps integration)
+      locationString: {
+        type: String,
+        trim: true,
+        // e.g., "Mumbai, Maharashtra"
+      },
+      latitude: {
+        type: Number,
+        min: [-90, 'Latitude must be between -90 and 90'],
+        max: [90, 'Latitude must be between -90 and 90'],
+      },
+      longitude: {
+        type: Number,
+        min: [-180, 'Longitude must be between -180 and 180'],
+        max: [180, 'Longitude must be between -180 and 180'],
+      },
+      // Existing GeoJSON structure (keep for MongoDB geospatial queries)
       location: {
         city: String,
         state: String,

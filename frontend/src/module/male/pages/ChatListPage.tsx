@@ -59,19 +59,25 @@ export const ChatListPage = () => {
 
   // Transform API chats to component format
   const transformedChats = useMemo(() => {
-    return chats.map(chat => ({
-      id: chat._id,
-      oddsUserId: chat.otherUser._id,
-      userName: chat.otherUser.name,
-      userAvatar: chat.otherUser.avatar || '',
-      lastMessage: chat.lastMessage?.content || 'Start chatting!',
-      timestamp: formatTimestamp(chat.lastMessageAt),
-      isOnline: chat.otherUser.isOnline,
-      hasUnread: chat.unreadCount > 0,
-      unreadCount: chat.unreadCount,
-      messageType: chat.lastMessage?.messageType || 'text',
-      intimacy: chat.intimacy,
-    }));
+    return chats.map(chat => {
+      // DEFENSIVE: Safe access to otherUser
+      const otherUser = (chat.otherUser || {}) as any;
+      const lastMsg = (chat.lastMessage || {}) as any;
+
+      return {
+        id: chat._id,
+        oddsUserId: otherUser._id || '',
+        userName: otherUser.name || 'User',
+        userAvatar: otherUser.avatar || '',
+        lastMessage: lastMsg.content || 'Start chatting!',
+        timestamp: formatTimestamp(chat.lastMessageAt),
+        isOnline: !!otherUser.isOnline,
+        hasUnread: (chat.unreadCount || 0) > 0,
+        unreadCount: chat.unreadCount || 0,
+        messageType: lastMsg.messageType || 'text',
+        intimacy: chat.intimacy || { level: 1, points: 0, nextLevelPoints: 100 },
+      };
+    });
   }, [chats]);
 
   const filteredChats = useMemo(() => {

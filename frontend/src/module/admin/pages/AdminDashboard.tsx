@@ -6,79 +6,52 @@ import { useAdminNavigation } from '../hooks/useAdminNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { AdminDashboardData, ActivityItem } from '../types/admin.types';
 
-// Mock data - replace with actual API calls
-const mockDashboardData: AdminDashboardData = {
-  stats: {
-    totalUsers: { male: 1250, female: 342, total: 1592 },
-    activeUsers: { last24h: 456, last7d: 892, last30d: 1245 },
-    revenue: { deposits: 125000, payouts: 45000, profit: 80000 },
-    pendingWithdrawals: 12,
-    totalTransactions: 3456,
-  },
-  charts: {
-    userGrowth: [
-      { date: '2024-01-01', count: 1200 },
-      { date: '2024-01-08', count: 1350 },
-      { date: '2024-01-15', count: 1450 },
-      { date: '2024-01-22', count: 1592 },
-    ],
-    revenueTrends: [
-      { date: '2024-01-01', deposits: 25000, payouts: 8000 },
-      { date: '2024-01-08', deposits: 32000, payouts: 12000 },
-      { date: '2024-01-15', deposits: 38000, payouts: 15000 },
-      { date: '2024-01-22', deposits: 30000, payouts: 10000 },
-    ],
-    activityMetrics: [
-      { type: 'Messages', count: 12500 },
-      { type: 'Video Calls', count: 340 },
-      { type: 'Coin Purchases', count: 890 },
-      { type: 'Withdrawals', count: 156 },
-    ],
-  },
-  recentActivity: [
-    {
-      id: '1',
-      type: 'user_registered',
-      message: 'New male user registered: John Doe',
-      timestamp: new Date(Date.now() - 300000).toISOString(),
-      userId: '1',
-      userName: 'John Doe',
-    },
-    {
-      id: '2',
-      type: 'female_approved',
-      message: 'Female user approved: Sarah Smith',
-      timestamp: new Date(Date.now() - 600000).toISOString(),
-      userId: '2',
-      userName: 'Sarah Smith',
-    },
-    {
-      id: '3',
-      type: 'withdrawal_approved',
-      message: 'Withdrawal approved: ₹2,500 for Emily Johnson',
-      timestamp: new Date(Date.now() - 900000).toISOString(),
-      userId: '3',
-      userName: 'Emily Johnson',
-    },
-    {
-      id: '4',
-      type: 'transaction',
-      message: 'Big coin purchase: ₹5,000 by Michael Brown',
-      timestamp: new Date(Date.now() - 1200000).toISOString(),
-      userId: '4',
-      userName: 'Michael Brown',
-    },
-  ],
-};
-
 export const AdminDashboard = () => {
-  const [dashboardData] = useState<AdminDashboardData>(mockDashboardData);
+  const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchDashboardStats();
   }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('matchmint_auth_token');
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/dashboard/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch dashboard stats');
+
+      const data = await response.json();
+
+      // Transform backend stats to match AdminDashboardData format
+      const transformedData: AdminDashboardData = {
+        stats: data.data.stats,
+        charts: {
+          userGrowth: [],
+          revenueTrends: [],
+          activityMetrics: []
+        },
+        recentActivity: []
+      };
+
+      setDashboardData(transformedData);
+    } catch (err: any) {
+      console.error('Failed to fetch dashboard stats:', err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -109,6 +82,36 @@ export const AdminDashboard = () => {
       default: return 'info';
     }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <MaterialSymbol name="sync" size={48} className="text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <MaterialSymbol name="error" size={48} className="text-red-600 mx-auto mb-4" />
+          <p className="text-gray-600">{error || 'Failed to load dashboard data'}</p>
+          <button
+            onClick={fetchDashboardStats}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col bg-[#f0f2f5] dark:bg-[#050505] overflow-x-hidden transition-colors duration-300">

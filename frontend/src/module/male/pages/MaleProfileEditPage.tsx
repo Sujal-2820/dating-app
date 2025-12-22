@@ -7,6 +7,7 @@ import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
+import { GoogleMapsAutocomplete } from '../../../shared/components/GoogleMapsAutocomplete';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -64,7 +65,7 @@ export const MaleProfileEditPage = () => {
 
   const handleSave = async () => {
     try {
-      await axios.patch(`${API_URL}/users/me`, {
+      const payload: any = {
         name: editedProfile.name,
         age: editedProfile.age,
         city: editedProfile.city,
@@ -72,7 +73,15 @@ export const MaleProfileEditPage = () => {
         bio: editedProfile.bio,
         interests: editedProfile.interests,
         photos: editedProfile.photos,
-      }, {
+      };
+
+      // Add coordinates if available
+      if (editedProfile.latitude && editedProfile.longitude) {
+        payload.latitude = editedProfile.latitude;
+        payload.longitude = editedProfile.longitude;
+      }
+
+      await axios.patch(`${API_URL}/users/me`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem('matchmint_auth_token')}` }
       });
 
@@ -245,12 +254,16 @@ export const MaleProfileEditPage = () => {
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
               City
             </label>
-            <input
-              type="text"
+            <GoogleMapsAutocomplete
               value={editedProfile.city || ''}
-              onChange={(e) =>
-                setEditedProfile({ ...editedProfile, city: e.target.value })
-              }
+              onChange={(value, coords) => {
+                const updates = { ...editedProfile, city: value };
+                if (coords) {
+                  updates.latitude = coords.lat;
+                  updates.longitude = coords.lng;
+                }
+                setEditedProfile(updates);
+              }}
               className="w-full px-3 py-2 bg-gray-50 dark:bg-[#2f151e] border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="Enter your city"
             />

@@ -124,19 +124,28 @@ export const verifySignupOtp = async (phoneNumber, otpCode) => {
 
     const { role, name, age, aadhaarCardUrl, location, bio, interests, photos } = userData;
 
-    // Build user object
+    // CRITICAL: Auto-translate name and bio for caching (cost optimization)
+    // This translates once on signup and caches both languages in DB
+    const { translateProfileData } = await import('../translate/translateService.js');
+    const translatedProfile = await translateProfileData({ name, bio });
+
+    // Build user object with cached translations
     const userPayload = {
         phoneNumber,
         role,
         genderPreference: role === 'male' ? 'female' : 'male', // Logic: Male -> Female, Female -> Male
         profile: {
-            name,
+            name: translatedProfile.name,
+            name_en: translatedProfile.name_en,
+            name_hi: translatedProfile.name_hi,
             age,
             location: {
                 city: location || '', // Basic string for now until full geo implementation
                 // Default coordinates will be [0,0] from schema
             },
-            bio,
+            bio: translatedProfile.bio,
+            bio_en: translatedProfile.bio_en,
+            bio_hi: translatedProfile.bio_hi,
             interests,
             photos: photos?.map((p, i) => ({
                 url: p.url || p, // Handle both object and string formats

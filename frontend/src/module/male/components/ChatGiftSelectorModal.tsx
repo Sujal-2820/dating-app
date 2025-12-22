@@ -14,7 +14,7 @@ interface Gift {
 interface ChatGiftSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSendGift: (giftId: string) => void;
+  onSendGift: (giftIds: string[]) => void;
   coinBalance: number;
 }
 
@@ -25,7 +25,7 @@ export const ChatGiftSelectorModal = ({
   coinBalance,
 }: ChatGiftSelectorModalProps) => {
   const [gifts, setGifts] = useState<Gift[]>([]);
-  const [selectedGift, setSelectedGift] = useState<string | null>(null);
+  const [selectedGifts, setSelectedGifts] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
@@ -50,23 +50,32 @@ export const ChatGiftSelectorModal = ({
 
   if (!isOpen) return null;
 
-  const getSelectedGiftData = (): Gift | undefined => {
-    return gifts.find((gift) => gift._id === selectedGift);
+  const getSelectedGiftsData = (): Gift[] => {
+    return gifts.filter((gift) => selectedGifts.includes(gift._id));
   };
 
-  const selectedGiftData = getSelectedGiftData();
-  const canSend = selectedGift && coinBalance >= (selectedGiftData?.cost || 0);
+  const selectedGiftsData = getSelectedGiftsData();
+  const totalCost = selectedGiftsData.reduce((sum, gift) => sum + gift.cost, 0);
+  const canSend = selectedGifts.length > 0 && coinBalance >= totalCost;
 
   const handleSend = async () => {
-    if (selectedGift && canSend && !isSending) {
+    if (selectedGifts.length > 0 && canSend && !isSending) {
       setIsSending(true);
       try {
-        await onSendGift(selectedGift);
-        setSelectedGift(null);
+        await onSendGift(selectedGifts);
+        setSelectedGifts([]);
       } finally {
         setIsSending(false);
       }
     }
+  };
+
+  const toggleGift = (giftId: string) => {
+    setSelectedGifts(prev =>
+      prev.includes(giftId)
+        ? prev.filter(id => id !== giftId)
+        : [...prev, giftId]
+    );
   };
 
   // Get icon based on category
@@ -135,20 +144,24 @@ export const ChatGiftSelectorModal = ({
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {gifts.map((gift) => {
-                  const isSelected = selectedGift === gift._id;
                   const canAfford = coinBalance >= gift.cost;
                   return (
                     <button
                       key={gift._id}
-                      onClick={() => canAfford && setSelectedGift(gift._id)}
-                      disabled={!canAfford}
-                      className={`p-4 rounded-xl border-2 transition-all ${isSelected
+                      onClick={() => canAfford && toggleGift(gift._id)}
+                      disabled={!canAfford && !selectedGifts.includes(gift._id)}
+                      className={`p-4 rounded-xl border-2 transition-all relative ${selectedGifts.includes(gift._id)
                         ? 'border-primary bg-primary/10 scale-105'
                         : canAfford
                           ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#342d18] hover:border-primary/50'
                           : 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 opacity-50'
                         }`}
                     >
+                      {selectedGifts.includes(gift._id) && (
+                        <div className="absolute top-2 right-2 bg-primary text-white rounded-full size-5 flex items-center justify-center">
+                          <MaterialSymbol name="check" size={14} />
+                        </div>
+                      )}
                       <div className="flex flex-col items-center gap-2">
                         {gift.imageUrl ? (
                           <img src={gift.imageUrl} alt={gift.name} className="w-12 h-12 object-contain" />
@@ -180,23 +193,32 @@ export const ChatGiftSelectorModal = ({
           )}
         </div>
 
-        {/* Footer - Selected Gift Summary & Send Button */}
         <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-[#2f151e]">
-          {selectedGiftData && (
+          {selectedGifts.length > 0 && (
             <div className="mb-3 p-3 bg-primary/10 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{getGiftIcon(selectedGiftData.category)}</span>
-                <div>
-                  <p className="font-medium text-slate-900 dark:text-white">{selectedGiftData.name}</p>
-                  {selectedGiftData.description && (
-                    <p className="text-xs text-gray-500">{selectedGiftData.description}</p>
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {selectedGiftsData.slice(0, 3).map((gift) => (
+                    <div key={gift._id} className="size-8 rounded-full bg-white dark:bg-gray-800 border border-primary/20 flex items-center justify-center p-1 overflow-hidden">
+                      <img src={gift.imageUrl} alt={gift.name} className="size-full object-contain" />
+                    </div>
+                  ))}
+                  {selectedGiftsData.length > 3 && (
+                    <div className="size-8 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center border border-white">
+                      +{selectedGiftsData.length - 3}
+                    </div>
                   )}
+                </div>
+                <div className="ml-2">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {selectedGiftsData.length} Gifts Selected
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-lg">🪙</span>
                 <span className="font-bold text-amber-700 dark:text-amber-300">
-                  {selectedGiftData.cost}
+                  {totalCost}
                 </span>
               </div>
             </div>
@@ -217,7 +239,9 @@ export const ChatGiftSelectorModal = ({
                 <>
                   <MaterialSymbol name="redeem" />
                   <span>
-                    {selectedGift ? `Send ${selectedGiftData?.name}` : 'Select a Gift'}
+                    {selectedGifts.length > 0
+                      ? `Send ${selectedGifts.length} Gifts (${totalCost} coins)`
+                      : 'Select a Gift'}
                   </span>
                 </>
               )}

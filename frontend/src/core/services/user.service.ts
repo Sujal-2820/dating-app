@@ -44,11 +44,20 @@ export interface UserProfile {
 
 /**
  * Get approved females for discover page
+ * CRITICAL: Now supports language parameter for cached translations
  */
 export const discoverFemales = async (filter: string = 'all', page: number = 1, limit: number = 50) => {
+    // Get current language from localStorage (set by i18next)
+    const language = localStorage.getItem('user_language') || 'en';
+
     const response = await axios.get(`${API_URL}/users/discover`, {
         headers: getAuthHeaders(),
-        params: { filter, page, limit }
+        params: {
+            filter,
+            page,
+            limit,
+            language // CRITICAL: Backend returns cached translations (no Google API cost!)
+        }
     });
     return response.data.data;
 };
