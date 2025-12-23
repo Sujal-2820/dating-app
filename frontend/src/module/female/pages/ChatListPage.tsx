@@ -21,10 +21,16 @@ export const ChatListPage = () => {
   const [chats, setChats] = useState<ApiChat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [availableBalance, setAvailableBalance] = useState<number>(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    // Get current user ID from token or context
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setCurrentUserId(user._id || '');
     fetchChats();
+    fetchAvailableBalance();
 
     // Connect socket
     socketService.connect();
@@ -56,20 +62,51 @@ export const ChatListPage = () => {
     }
   };
 
+  const fetchAvailableBalance = async () => {
+    try {
+      const response = await fetch('/api/users/female/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setAvailableBalance(data.data.earnings.availableBalance);
+      }
+    } catch (err) {
+      console.error('Failed to fetch available balance:', err);
+      // Fallback to coinBalance if API fails
+      setAvailableBalance(coinBalance || 0);
+    }
+  };
+
   // Transform API chats to component format
   const transformedChats = useMemo(() => {
-    return chats.map(chat => ({
-      id: chat._id,
-      userId: chat.otherUser._id,
-      userName: chat.otherUser.name,
-      userAvatar: chat.otherUser.avatar || '',
-      lastMessage: chat.lastMessage?.content || 'Start chatting!',
-      timestamp: formatTimestamp(chat.lastMessageAt),
-      isOnline: chat.otherUser.isOnline,
-      hasUnread: chat.unreadCount > 0,
-      unreadCount: chat.unreadCount,
-    }));
-  }, [chats]);
+    return chats.map(chat => {
+      // Check if the last message was sent by the current user (female)
+      // senderId can be either a string or an object with _id
+      const lastMessageSenderId = typeof chat.lastMessage?.senderId === 'string'
+        ? chat.lastMessage?.senderId
+        : (chat.lastMessage?.senderId as any)?._id;
+
+      const lastMessageSentByMe = lastMessageSenderId === currentUserId;
+
+      // Only show as unread/bold if there are unread messages AND the last message was NOT sent by me
+      const shouldHighlight = chat.unreadCount > 0 && !lastMessageSentByMe;
+
+      return {
+        id: chat._id,
+        userId: chat.otherUser._id,
+        userName: chat.otherUser.name,
+        userAvatar: chat.otherUser.avatar || '',
+        lastMessage: chat.lastMessage?.content || 'Start chatting!',
+        timestamp: formatTimestamp(chat.lastMessageAt),
+        isOnline: chat.otherUser.isOnline,
+        hasUnread: shouldHighlight,
+        unreadCount: chat.unreadCount,
+      };
+    });
+  }, [chats, currentUserId]);
 
   const filteredChats = useMemo(() => {
     if (!searchQuery.trim()) return transformedChats;
@@ -97,7 +134,7 @@ export const ChatListPage = () => {
         onItemClick={handleNavigationClick}
       />
 
-      <ChatListHeader coinBalance={coinBalance} />
+      <ChatListHeader coinBalance={availableBalance} />
       <SearchBar onSearch={setSearchQuery} placeholder="Search chats..." />
 
       <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">

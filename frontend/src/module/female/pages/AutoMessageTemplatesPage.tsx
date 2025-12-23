@@ -7,30 +7,7 @@ import { FemaleTopNavbar } from '../components/FemaleTopNavbar';
 import { FemaleSidebar } from '../components/FemaleSidebar';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import type { AutoMessageTemplate } from '../types/female.types';
-
-// Mock data - replace with actual API calls
-const mockTemplates: AutoMessageTemplate[] = [
-  {
-    id: '1',
-    name: 'Welcome Message',
-    content: 'Hi! Thanks for reaching out. How are you doing today?',
-    triggerType: 'time_based',
-    triggerCondition: 'first_message',
-    isEnabled: true,
-    createdAt: '2024-01-10T10:00:00Z',
-    updatedAt: '2024-01-10T10:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Thank You',
-    content: 'Thank you for your message! I appreciate it. 😊',
-    triggerType: 'keyword_based',
-    triggerCondition: 'thank',
-    isEnabled: false,
-    createdAt: '2024-01-12T14:00:00Z',
-    updatedAt: '2024-01-12T14:00:00Z',
-  },
-];
+import autoMessageService from '../../../core/services/autoMessage.service';
 
 export const AutoMessageTemplatesPage = () => {
   const navigate = useNavigate();
@@ -39,32 +16,59 @@ export const AutoMessageTemplatesPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-  const [templates, setTemplates] = useState<AutoMessageTemplate[]>(mockTemplates);
+
+  const [templates, setTemplates] = useState<AutoMessageTemplate[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const [newTemplate, setNewTemplate] = useState({ name: '', content: '', triggerType: 'time_based' as const, triggerCondition: '' });
+  const [newTemplate, setNewTemplate] = useState({ name: '', content: '' });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreateTemplate = () => {
+  // Fetch templates on mount
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await autoMessageService.getTemplates();
+      setTemplates(data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to load templates');
+      console.error('Error fetching templates:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateTemplate = async () => {
     if (!newTemplate.name || !newTemplate.content) {
       alert('Please fill in all required fields');
       return;
     }
 
-    const template: AutoMessageTemplate = {
-      id: Date.now().toString(),
-      name: newTemplate.name,
-      content: newTemplate.content,
-      triggerType: newTemplate.triggerType,
-      triggerCondition: newTemplate.triggerCondition || undefined,
-      isEnabled: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (newTemplate.content.length > 500) {
+      alert('Content cannot exceed 500 characters');
+      return;
+    }
 
-    setTemplates([...templates, template]);
-    setIsCreateModalOpen(false);
-    setNewTemplate({ name: '', content: '', triggerType: 'time_based', triggerCondition: '' });
+    try {
+      const created = await autoMessageService.createTemplate({
+        name: newTemplate.name,
+        content: newTemplate.content,
+        isEnabled: false, // New templates start disabled
+      });
+
+      setTemplates([created, ...templates]);
+      setIsCreateModalOpen(false);
+      setNewTemplate({ name: '', content: '' });
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to create template');
+      console.error('Error creating template:', err);
+    }
   };
 
   const handleEditTemplate = (template: AutoMessageTemplate) => {
@@ -72,47 +76,69 @@ export const AutoMessageTemplatesPage = () => {
     setNewTemplate({
       name: template.name,
       content: template.content,
-      triggerType: template.triggerType,
-      triggerCondition: template.triggerCondition || '',
     });
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateTemplate = () => {
+  const handleUpdateTemplate = async () => {
     if (!newTemplate.name || !newTemplate.content || !editingTemplateId) {
       alert('Please fill in all required fields');
       return;
     }
 
-    setTemplates(
-      templates.map((t) =>
-        t.id === editingTemplateId
-          ? {
-              ...t,
-              name: newTemplate.name,
-              content: newTemplate.content,
-              triggerType: newTemplate.triggerType,
-              triggerCondition: newTemplate.triggerCondition || undefined,
-              updatedAt: new Date().toISOString(),
-            }
-          : t
-      )
-    );
+    if (newTemplate.content.length > 500) {
+      alert('Content cannot exceed 500 characters');
+      return;
+    }
 
-    setIsEditModalOpen(false);
-    setEditingTemplateId(null);
-    setNewTemplate({ name: '', content: '', triggerType: 'time_based', triggerCondition: '' });
+    try {
+      const updated = await autoMessageService.updateTemplate(editingTemplateId, {
+        name: newTemplate.name,
+        content: newTemplate.content,
+      });
+
+      setTemplates(
+        templates.map((t) => (t.id === editingTemplateId ? updated : t))
+      );
+
+      setIsEditModalOpen(false);
+      setEditingTemplateId(null);
+      setNewTemplate({ name: '', content: '' });
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to update template');
+      console.error('Error updating template:', err);
+    }
   };
 
-  const handleToggleTemplate = (id: string) => {
-    setTemplates(
-      templates.map((t) => (t.id === id ? { ...t, isEnabled: !t.isEnabled } : t))
-    );
+  const handleToggleTemplate = async (id: string) => {
+    const template = templates.find(t => t.id === id);
+    if (!template) return;
+
+    try {
+      const updated = await autoMessageService.updateTemplate(id, {
+        isEnabled: !template.isEnabled,
+      });
+
+      setTemplates(
+        templates.map((t) => (t.id === id ? updated : t))
+      );
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to toggle template');
+      console.error('Error toggling template:', err);
+    }
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this template?')) {
+  const handleDeleteTemplate = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) {
+      return;
+    }
+
+    try {
+      await autoMessageService.deleteTemplate(id);
       setTemplates(templates.filter((t) => t.id !== id));
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to delete template');
+      console.error('Error deleting template:', err);
     }
   };
 
@@ -154,61 +180,92 @@ export const AutoMessageTemplatesPage = () => {
           Create automated message templates that will be sent automatically based on triggers.
         </p>
 
-        <div className="space-y-3">
-          {templates.map((template) => (
-            <div
-              key={template.id}
-              className="bg-white dark:bg-[#342d18] rounded-xl p-4 shadow-sm"
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+            <p className="text-red-600 dark:text-red-400">{error}</p>
+            <button
+              onClick={fetchTemplates}
+              className="mt-2 text-sm text-red-600 dark:text-red-400 underline"
             >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{template.name}</h3>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${
-                        template.isEnabled
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* Templates List */}
+        {!isLoading && !error && (
+          <div className="space-y-3">{templates.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-[#cbbc90]">
+                No templates yet. Create your first auto-message template!
+              </p>
+            </div>
+          ) : (
+            templates.map((template) => (
+              <div
+                key={template.id}
+                className="bg-white dark:bg-[#342d18] rounded-xl p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{template.name}</h3>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${template.isEnabled
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                      }`}
-                    >
-                      {template.isEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
+                          }`}
+                      >
+                        {template.isEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-[#cbbc90] mb-2">{template.content}</p>
+                    {template.stats && template.stats.sentCount > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-[#cbbc90]">
+                        Sent {template.stats.sentCount} times
+                      </p>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-[#cbbc90] mb-2">{template.content}</p>
-                  <p className="text-xs text-gray-500 dark:text-[#cbbc90]">
-                    Trigger: {template.triggerType.replace('_', ' ')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleEditTemplate(template)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-blue-500"
-                    title="Edit template"
-                  >
-                    <MaterialSymbol name="edit" />
-                  </button>
-                  <button
-                    onClick={() => handleToggleTemplate(template.id)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors"
-                    title={template.isEnabled ? 'Disable template' : 'Enable template'}
-                  >
-                    <MaterialSymbol
-                      name={template.isEnabled ? 'toggle_on' : 'toggle_off'}
-                      className={template.isEnabled ? 'text-primary' : 'text-gray-400'}
-                    />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTemplate(template.id)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-red-500"
-                    title="Delete template"
-                  >
-                    <MaterialSymbol name="delete" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditTemplate(template)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-blue-500"
+                      title="Edit template"
+                    >
+                      <MaterialSymbol name="edit" />
+                    </button>
+                    <button
+                      onClick={() => handleToggleTemplate(template.id)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors"
+                      title={template.isEnabled ? 'Disable template' : 'Enable template'}
+                    >
+                      <MaterialSymbol
+                        name={template.isEnabled ? 'toggle_on' : 'toggle_off'}
+                        className={template.isEnabled ? 'text-primary' : 'text-gray-400'}
+                      />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTemplate(template.id)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2515] transition-colors text-red-500"
+                      title="Delete template"
+                    >
+                      <MaterialSymbol name="delete" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))
+          )}
+          </div>
+        )}
       </div>
 
       {/* Create Template Modal */}
@@ -238,43 +295,11 @@ export const AutoMessageTemplatesPage = () => {
                 rows={4}
                 className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white"
               />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">
-                  Trigger Type
-                </label>
-                <select
-                  value={newTemplate.triggerType}
-                  onChange={(e) =>
-                    setNewTemplate({
-                      ...newTemplate,
-                      triggerType: e.target.value as 'time_based' | 'keyword_based' | 'manual',
-                    })
-                  }
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white"
-                >
-                  <option value="time_based">Time Based</option>
-                  <option value="keyword_based">Keyword Based</option>
-                  <option value="manual">Manual</option>
-                </select>
-              </div>
-              {newTemplate.triggerType !== 'manual' && (
-                <input
-                  type="text"
-                  placeholder={
-                    newTemplate.triggerType === 'time_based'
-                      ? 'Trigger condition (e.g., first_message)'
-                      : 'Keyword (e.g., thank you)'
-                  }
-                  value={newTemplate.triggerCondition}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, triggerCondition: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white"
-                />
-              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     setIsCreateModalOpen(false);
-                    setNewTemplate({ name: '', content: '', triggerType: 'time_based', triggerCondition: '' });
+                    setNewTemplate({ name: '', content: '' });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-200 dark:bg-[#4a212f] text-gray-700 dark:text-white rounded-lg"
                 >
@@ -300,7 +325,7 @@ export const AutoMessageTemplatesPage = () => {
             onClick={() => {
               setIsEditModalOpen(false);
               setEditingTemplateId(null);
-              setNewTemplate({ name: '', content: '', triggerType: 'time_based', triggerCondition: '' });
+              setNewTemplate({ name: '', content: '' });
             }}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -323,44 +348,12 @@ export const AutoMessageTemplatesPage = () => {
                 rows={4}
                 className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white"
               />
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-[#cbbc90] mb-2">
-                  Trigger Type
-                </label>
-                <select
-                  value={newTemplate.triggerType}
-                  onChange={(e) =>
-                    setNewTemplate({
-                      ...newTemplate,
-                      triggerType: e.target.value as 'time_based' | 'keyword_based' | 'manual',
-                    })
-                  }
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white"
-                >
-                  <option value="time_based">Time Based</option>
-                  <option value="keyword_based">Keyword Based</option>
-                  <option value="manual">Manual</option>
-                </select>
-              </div>
-              {newTemplate.triggerType !== 'manual' && (
-                <input
-                  type="text"
-                  placeholder={
-                    newTemplate.triggerType === 'time_based'
-                      ? 'Trigger condition (e.g., first_message)'
-                      : 'Keyword (e.g., thank you)'
-                  }
-                  value={newTemplate.triggerCondition}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, triggerCondition: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-[#2a2515] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white"
-                />
-              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     setIsEditModalOpen(false);
                     setEditingTemplateId(null);
-                    setNewTemplate({ name: '', content: '', triggerType: 'time_based', triggerCondition: '' });
+                    setNewTemplate({ name: '', content: '' });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-200 dark:bg-[#4a212f] text-gray-700 dark:text-white rounded-lg"
                 >

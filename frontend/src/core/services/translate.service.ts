@@ -63,6 +63,7 @@ class TranslateService {
 
     /**
      * Translate a single text
+     * (Dynamic Google Translate disabled - only static translations kept)
      */
     async translate(
         text: string,
@@ -79,59 +80,19 @@ class TranslateService {
             return text;
         }
 
-        // Check static translations first (instant, no cache needed)
+        // Check static translations first (preserving static translation as requested)
         const staticTraslation = getStaticTranslation(text, targetLang);
         if (staticTraslation) {
             return staticTraslation;
         }
 
-        // Check cache
-        const cacheKey = this.getCacheKey(text, sourceLang, targetLang);
-        if (this.cache[cacheKey]) {
-            return this.cache[cacheKey];
-        }
-
-        // Translate via Google API
-        try {
-            if (!GOOGLE_TRANSLATE_API_KEY) {
-                console.warn('Google Translate API key not found');
-                return text; // Fallback to original
-            }
-
-            const url = `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_TRANSLATE_API_KEY}`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    q: text,
-                    source: sourceLang,
-                    target: targetLang,
-                    format: 'text',
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Translation API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const translatedText = data.data.translations[0].translatedText;
-
-            // Cache the translation
-            this.cache[cacheKey] = translatedText;
-            this.saveCacheToStorage();
-
-            return translatedText;
-        } catch (error) {
-            console.error('Translation failed:', error);
-            return text; // Fallback to original text
-        }
+        // If no static translation, return original text (dynamic translation removed)
+        return text;
     }
 
     /**
      * Translate multiple texts in batch
+     * (Dynamic Google Translate disabled - only static translations kept)
      */
     async translateBatch(
         texts: string[],
@@ -142,87 +103,13 @@ class TranslateService {
             return texts;
         }
 
-        try {
-            // Separate texts into cached and uncached
-            const results: string[] = new Array(texts.length);
-            const toTranslate: { text: string; index: number }[] = [];
+        // Process batch: use static translations where available, otherwise keep original
+        return texts.map(text => {
+            if (!text || text.trim() === '') return text;
 
-            texts.forEach((text, index) => {
-                if (!text || text.trim() === '') {
-                    results[index] = text;
-                    return;
-                }
-
-                // Check static first
-                const staticTranslation = getStaticTranslation(text, targetLang);
-                if (staticTranslation) {
-                    results[index] = staticTranslation;
-                    return;
-                }
-
-                // Check cache
-                const cacheKey = this.getCacheKey(text, sourceLang, targetLang);
-                if (this.cache[cacheKey]) {
-                    results[index] = this.cache[cacheKey];
-                    return;
-                }
-
-                // Mark for API translation
-                toTranslate.push({ text, index });
-            });
-
-            // If everything is cached, return immediately
-            if (toTranslate.length === 0) {
-                return results;
-            }
-
-            // Translate uncached texts via API
-            if (!GOOGLE_TRANSLATE_API_KEY) {
-                console.warn('Google Translate API key not found');
-                // Fill uncached with originals
-                toTranslate.forEach(({ text, index }) => {
-                    results[index] = text;
-                });
-                return results;
-            }
-
-            const url = `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_TRANSLATE_API_KEY}`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    q: toTranslate.map(item => item.text),
-                    source: sourceLang,
-                    target: targetLang,
-                    format: 'text',
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Translation API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const translations = data.data.translations;
-
-            // Fill results and cache
-            toTranslate.forEach(({ text, index }, i) => {
-                const translatedText = translations[i].translatedText;
-                results[index] = translatedText;
-
-                const cacheKey = this.getCacheKey(text, sourceLang, targetLang);
-                this.cache[cacheKey] = translatedText;
-            });
-
-            this.saveCacheToStorage();
-            return results;
-        } catch (error) {
-            console.error('Batch translation failed:', error);
-            // Fallback: return original texts for failed items
-            return texts.map((text, index) => results[index] || text);
-        }
+            const staticTranslation = getStaticTranslation(text, targetLang);
+            return staticTranslation || text;
+        });
     }
 
     /**

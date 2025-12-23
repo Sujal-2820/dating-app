@@ -7,12 +7,13 @@ import { PhotoPickerModal } from '../components/PhotoPickerModal';
 import { ChatMoreOptionsModal } from '../components/ChatMoreOptionsModal';
 import { ChatGiftSelectorModal } from '../components/ChatGiftSelectorModal';
 import { LevelUpModal } from '../components/LevelUpModal';
-import { InsufficientBalanceModal } from '../../../shared/components/InsufficientBalanceModal';
+import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import { useVideoCall } from '../../../core/context/VideoCallContext';
 import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
+import offlineQueueService from '../../../core/services/offlineQueue.service';
 import type { Chat as ApiChat, Message as ApiMessage, IntimacyInfo } from '../../../core/types/chat.types';
 
 // Message cost constant
@@ -38,6 +39,7 @@ export const ChatWindowPage = () => {
   const [levelUpInfo, setLevelUpInfo] = useState<IntimacyInfo | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [requiredCoinsModal, setRequiredCoinsModal] = useState(MESSAGE_COST);
+  const [modalAction, setModalAction] = useState('perform this action');
 
 
   // Typing indicator
@@ -94,6 +96,60 @@ export const ChatWindowPage = () => {
       }
     };
   }, [chatId, navigate]);
+
+  // Check balance on load and show modal if insufficient
+  useEffect(() => {
+    if (!isLoading && coinBalance < MESSAGE_COST) {
+      setRequiredCoinsModal(MESSAGE_COST);
+      setModalAction('send a message');
+      setIsBalanceModalOpen(true);
+    }
+  }, [isLoading, coinBalance]);
+
+  // Process offline queue when back online
+  useEffect(() => {
+    const processOfflineQueue = async () => {
+      if (!chatId) return;
+
+      await offlineQueueService.processQueue(async (queuedMsg) => {
+        try {
+          if (queuedMsg.data.chatId !== chatId) return false;
+
+          if (queuedMsg.type === 'message') {
+            const result = await chatService.sendMessage(queuedMsg.data.chatId, queuedMsg.data.content);
+
+            setMessages(prev => prev.map(m =>
+              m._id === queuedMsg.data.optimisticMessageId ? result.message : m
+            ));
+            return true;
+          }
+
+          if (queuedMsg.type === 'gift') {
+            const result = await chatService.sendGift(queuedMsg.data.chatId, queuedMsg.data.giftIds);
+
+            setMessages(prev => prev.map(m =>
+              m._id === queuedMsg.data.optimisticMessageId ? result.message : m
+            ));
+            return true;
+          }
+
+          return false;
+        } catch (err) {
+          console.error('[QueueProcessor] Failed to send queued message:', err);
+          return false;
+        }
+      });
+    };
+
+    // Set callback for when back online
+    offlineQueueService.setOnlineCallback(processOfflineQueue);
+
+    // Also process on mount if there are queued messages
+    if (offlineQueueService.getQueueSize() > 0) {
+      processOfflineQueue();
+    }
+  }, [chatId]);
+
 
   // Socket event listeners
   useEffect(() => {
@@ -171,10 +227,28 @@ export const ChatWindowPage = () => {
     // Check balance
     if (coinBalance < MESSAGE_COST) {
       setRequiredCoinsModal(MESSAGE_COST);
+      setModalAction('send a message');
       setIsBalanceModalOpen(true);
       return;
     }
 
+    // STEP 1: Deduct coins IMMEDIATELY (optimistic update)
+    const newBalance = coinBalance - MESSAGE_COST;
+    updateBalance(newBalance);
+
+    // STEP 2: Create optimistic message for UI
+    const optimisticMessage: ApiMessage = {
+      _id: `temp_${Date.now()}`,
+      chatId: chatId,
+      senderId: user?._id || (user as any)?.id,
+      content,
+      messageType: 'text',
+      status: 'sending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any;
+
+    setMessages(prev => [...prev, optimisticMessage]);
 
     try {
       setIsSending(true);
@@ -182,10 +256,12 @@ export const ChatWindowPage = () => {
 
       const result = await chatService.sendMessage(chatId, content);
 
-      // Update messages (socket will also broadcast, but this ensures immediate UI update)
-      setMessages(prev => [...prev, result.message]);
+      // STEP 3: Replace optimistic message with real message
+      setMessages(prev => prev.map(m =>
+        m._id === optimisticMessage._id ? result.message : m
+      ));
 
-      // Update balance via global state
+      // Update balance from server (should match our optimistic update)
       if (result.newBalance !== undefined) {
         updateBalance(result.newBalance);
       }
@@ -200,15 +276,62 @@ export const ChatWindowPage = () => {
 
     } catch (err: any) {
       console.error('Failed to send message:', err);
-      setError(err.response?.data?.message || 'Failed to send message');
+
+      // STEP 4: If offline or network error, queue the message
+      // IMPORTANT: Coins already deducted, will NOT be refunded
+      if (!offlineQueueService.isOnline() || err.code === 'ERR_NETWORK') {
+        console.log('[ChatWindow] Offline detected, queuing message');
+
+        offlineQueueService.queueMessage('message', {
+          chatId,
+          content,
+          optimisticMessageId: optimisticMessage._id,
+        }, MESSAGE_COST);
+
+        // Update message status to 'queued'
+        setMessages(prev => prev.map(m =>
+          m._id === optimisticMessage._id
+            ? { ...m, status: 'queued' as any }
+            : m
+        ));
+
+        setError('Message queued. Will send when back online.');
+      } else {
+        // Other errors (not network related)
+        setError(err.response?.data?.message || 'Failed to send message');
+
+        // Remove optimistic message on non-network errors
+        setMessages(prev => prev.filter(m => m._id !== optimisticMessage._id));
+      }
     } finally {
       setIsSending(false);
     }
   };
 
+
   // Send gift
-  const handleSendGift = async (giftIds: string[]) => {
+  const handleSendGift = async (giftIds: string[], totalCost: number) => {
     if (!chatId || isSending) return;
+
+    // STEP 1: Deduct coins IMMEDIATELY (optimistic update)
+    const newBalance = coinBalance - totalCost;
+    updateBalance(newBalance);
+
+    // STEP 2: Create optimistic gift message for UI
+    const optimisticMessage: ApiMessage = {
+      _id: `temp_gift_${Date.now()}`,
+      chatId: chatId,
+      senderId: user?._id || (user as any)?.id,
+      content: 'Sent a gift',
+      messageType: 'gift',
+      status: 'sending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      gifts: giftIds.map(id => ({ giftId: id, giftName: 'Gift', giftImage: '', giftCost: 0 })) // Minimal representation
+    } as any;
+
+    setMessages(prev => [...prev, optimisticMessage]);
+    setIsGiftSelectorOpen(false);
 
     try {
       setIsSending(true);
@@ -216,10 +339,12 @@ export const ChatWindowPage = () => {
 
       const result = await chatService.sendGift(chatId, giftIds);
 
-      // Update messages
-      setMessages(prev => [...prev, result.message]);
+      // STEP 3: Replace optimistic message with real message
+      setMessages(prev => prev.map(m =>
+        m._id === optimisticMessage._id ? result.message : m
+      ));
 
-      // Update balance via global state
+      // Update balance from server
       if (result.newBalance !== undefined) {
         updateBalance(result.newBalance);
       }
@@ -232,19 +357,39 @@ export const ChatWindowPage = () => {
         setIntimacy(result.intimacy);
       }
 
-      setIsGiftSelectorOpen(false);
     } catch (err: any) {
       console.error('Failed to send gift:', err);
-      const errorMessage = err.response?.data?.message || '';
-      if (errorMessage.toLowerCase().includes('insufficient') || errorMessage.toLowerCase().includes('balance')) {
-        // We might not know the exact cost here easily without re-calculating, 
-        // but it's okay to show the modal
-        setIsBalanceModalOpen(true);
+
+      // STEP 4: If offline or network error, queue the gift
+      if (!offlineQueueService.isOnline() || err.code === 'ERR_NETWORK') {
+        console.log('[ChatWindow] Offline detected, queuing gift');
+
+        offlineQueueService.queueMessage('gift', {
+          chatId,
+          giftIds,
+          optimisticMessageId: optimisticMessage._id,
+        }, totalCost);
+
+        // Update message status to 'queued'
+        setMessages(prev => prev.map(m =>
+          m._id === optimisticMessage._id
+            ? { ...m, status: 'queued' as any }
+            : m
+        ));
+
+        setError('Gift queued. Will send when back online.');
       } else {
-        setError(errorMessage || 'Failed to send gift');
+        const errorMessage = err.response?.data?.message || '';
+        if (errorMessage.toLowerCase().includes('insufficient') || errorMessage.toLowerCase().includes('balance')) {
+          setModalAction('send this gift');
+          setIsBalanceModalOpen(true);
+        } else {
+          setError(errorMessage || 'Failed to send gift');
+        }
+        // Remove optimistic message on non-network errors
+        setMessages(prev => prev.filter(m => m._id !== optimisticMessage._id));
       }
     } finally {
-
       setIsSending(false);
     }
   };
@@ -304,6 +449,7 @@ export const ChatWindowPage = () => {
           }
           if (coinBalance < callPrice) {
             setRequiredCoinsModal(callPrice);
+            setModalAction('start a video call');
             setIsBalanceModalOpen(true);
             return;
           }
@@ -417,7 +563,7 @@ export const ChatWindowPage = () => {
       <ChatMoreOptionsModal
         isOpen={isMoreOptionsOpen}
         onClose={() => setIsMoreOptionsOpen(false)}
-        onViewProfile={() => { }}
+        onViewProfile={() => navigate(`/male/profile/${chatInfo.otherUser._id}`)}
         onBlock={() => { }}
         onReport={() => { }}
         onDelete={() => navigate('/male/chats')}
@@ -435,7 +581,10 @@ export const ChatWindowPage = () => {
       <InsufficientBalanceModal
         isOpen={isBalanceModalOpen}
         onClose={() => setIsBalanceModalOpen(false)}
+        onBuyCoins={() => navigate('/male/buy-coins')}
         requiredCoins={requiredCoinsModal}
+        currentBalance={coinBalance || 0}
+        action={modalAction}
       />
 
 

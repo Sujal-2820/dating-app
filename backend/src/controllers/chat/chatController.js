@@ -9,6 +9,7 @@ import Message from '../../models/Message.js';
 import User from '../../models/User.js';
 import { NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { getLevelInfo } from '../../utils/intimacyLevel.js';
+import autoMessageService from '../../services/user/autoMessageService.js';
 
 /**
  * Get user's chat list
@@ -17,6 +18,14 @@ export const getMyChatList = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { language = 'en' } = req.query;
+
+        // Trigger auto-messages for male users (non-blocking)
+        if (req.user.role === 'male') {
+            autoMessageService.processAutoMessagesForMale(userId).catch(err => {
+                // Log error but don't block the response
+                console.error('Auto-message processing error:', err);
+            });
+        }
 
         const chats = await Chat.find({
             'participants.userId': userId,
@@ -70,7 +79,13 @@ export const getMyChatList = async (req, res, next) => {
                 lastMessageAt: chat.lastMessageAt,
                 unreadCount: myParticipant.unreadCount,
                 createdAt: chat.createdAt,
-                intimacy: getLevelInfo(chat.totalMessageCount || 0),
+                // Intimacy level based ONLY on male messages
+                intimacy: (() => {
+                    const maleParticipant = chat.participants.find(p => p.role === 'male');
+                    const maleUserId = maleParticipant?.userId._id.toString();
+                    const maleMessageCount = maleUserId ? (chat.messageCountByUser?.get(maleUserId) || 0) : 0;
+                    return getLevelInfo(maleMessageCount);
+                })(),
             };
         }).filter(Boolean); // Remove null entries
 
@@ -163,7 +178,13 @@ export const getOrCreateChat = async (req, res, next) => {
             lastMessageAt: chat.lastMessageAt,
             unreadCount: myParticipant?.unreadCount || 0,
             createdAt: chat.createdAt,
-            intimacy: getLevelInfo(chat.totalMessageCount || 0),
+            // Intimacy level based ONLY on male messages
+            intimacy: (() => {
+                const maleParticipant = chat.participants.find(p => p.role === 'male');
+                const maleUserId = maleParticipant?.userId._id.toString();
+                const maleMessageCount = maleUserId ? (chat.messageCountByUser?.get(maleUserId) || 0) : 0;
+                return getLevelInfo(maleMessageCount);
+            })(),
         };
 
         res.status(200).json({
@@ -222,7 +243,13 @@ export const getChatById = async (req, res, next) => {
             lastMessageAt: chat.lastMessageAt,
             unreadCount: myParticipant.unreadCount,
             createdAt: chat.createdAt,
-            intimacy: getLevelInfo(chat.totalMessageCount || 0),
+            // Intimacy level based ONLY on male messages
+            intimacy: (() => {
+                const maleParticipant = chat.participants.find(p => p.role === 'male');
+                const maleUserId = maleParticipant?.userId._id.toString();
+                const maleMessageCount = maleUserId ? (chat.messageCountByUser?.get(maleUserId) || 0) : 0;
+                return getLevelInfo(maleMessageCount);
+            })(),
         };
 
         res.status(200).json({

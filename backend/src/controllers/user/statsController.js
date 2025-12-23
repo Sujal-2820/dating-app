@@ -7,6 +7,7 @@ import Chat from '../../models/Chat.js';
 import Message from '../../models/Message.js';
 import Transaction from '../../models/Transaction.js';
 import User from '../../models/User.js';
+import autoMessageService from '../../services/user/autoMessageService.js';
 
 /**
  * Get current user statistics
@@ -14,6 +15,14 @@ import User from '../../models/User.js';
 export const getMeStats = async (req, res, next) => {
     try {
         const userId = req.user.id;
+
+        // Trigger auto-messages for male users (non-blocking)
+        if (req.user.role === 'male') {
+            autoMessageService.processAutoMessagesForMale(userId).catch(err => {
+                // Log error but don't block the response
+                console.error('Auto-message processing error:', err);
+            });
+        }
 
         // 1. Matches (Count of unique chats)
         const matches = await Chat.countDocuments({

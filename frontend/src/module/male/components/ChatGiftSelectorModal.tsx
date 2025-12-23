@@ -14,7 +14,7 @@ interface Gift {
 interface ChatGiftSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSendGift: (giftIds: string[]) => void;
+  onSendGift: (giftIds: string[], totalCost: number) => void;
   coinBalance: number;
 }
 
@@ -62,7 +62,7 @@ export const ChatGiftSelectorModal = ({
     if (selectedGifts.length > 0 && canSend && !isSending) {
       setIsSending(true);
       try {
-        await onSendGift(selectedGifts);
+        await onSendGift(selectedGifts, totalCost);
         setSelectedGifts([]);
       } finally {
         setIsSending(false);

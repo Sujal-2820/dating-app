@@ -1,8 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WalletHeader } from '../components/WalletHeader';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
-import { SegmentedControls } from '../components/SegmentedControls';
 import { TransactionItem } from '../components/TransactionItem';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { HelpModal } from '../components/HelpModal';
@@ -12,10 +11,7 @@ import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import walletService from '../../../core/services/wallet.service';
 import type { Transaction } from '../types/male.types';
 
-const filterOptions = [
-  { id: 'all', label: 'All' },
-  { id: 'purchased', label: 'Purchased' },
-];
+// No filter options as per user request to only show purchases
 
 // Helper to format timestamp
 const formatTransactionTime = (dateString: string) => {
@@ -48,40 +44,60 @@ export const WalletPage = () => {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const ITEMS_PER_PAGE = 10;
 
   // Fetch real transactions
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        setIsLoadingTransactions(true);
-        const data = await walletService.getMyTransactions({ limit: 10 });
-
-        // Transform backend transactions to frontend format
-        // Filter out message_spent transactions (user doesn't want these)
-        const formattedTransactions: Transaction[] = (data.transactions || [])
-          .filter((t: any) => t.direction === 'credit')
-          .slice(0, 5)
-          .map((t: any) => ({
-            id: t._id,
-            type: t.type === 'purchase' ? 'purchase' : t.type === 'gift_sent' ? 'gift' : 'spent',
-            title: getTransactionTitle(t),
-            timestamp: formatTransactionTime(t.createdAt),
-            amount: t.amountCoins || 0, // Backend uses amountCoins, not amount
-            isPositive: t.direction === 'credit',
-          }));
-
-        setTransactions(formattedTransactions);
-      } catch (err) {
-        console.error('Failed to fetch transactions:', err);
-      } finally {
-        setIsLoadingTransactions(false);
-      }
-    };
-
-    fetchTransactions();
+    fetchTransactions(1, false);
   }, []);
+
+  const fetchTransactions = async (page: number, append: boolean) => {
+    try {
+      if (append) setIsLoadingMore(true);
+      else setIsLoadingTransactions(true);
+
+      const data = await walletService.getMyTransactions({
+        limit: ITEMS_PER_PAGE,
+        page,
+        type: 'purchase' // Only show purchases as requested
+      });
+
+      // Transform backend transactions to frontend format
+      const formattedTransactions: Transaction[] = (data.transactions || [])
+        .map((t: any) => ({
+          id: t._id,
+          type: 'purchase' as const,
+          title: getTransactionTitle(t),
+          timestamp: formatTransactionTime(t.createdAt),
+          amount: t.amountCoins || 0,
+          isPositive: true,
+        }));
+
+      if (append) {
+        setTransactions(prev => [...prev, ...formattedTransactions]);
+      } else {
+        setTransactions(formattedTransactions);
+      }
+
+      setHasMore(formattedTransactions.length === ITEMS_PER_PAGE);
+    } catch (err) {
+      console.error('Failed to fetch transactions:', err);
+    } finally {
+      setIsLoadingTransactions(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleShowMore = () => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    fetchTransactions(nextPage, true);
+  };
 
   // Helper to generate transaction title
   const getTransactionTitle = (t: any): string => {
@@ -106,18 +122,8 @@ export const WalletPage = () => {
     }
   };
 
-  const filteredTransactions = useMemo(() => {
-    if (selectedFilter === 'all') {
-      return transactions;
-    }
-    if (selectedFilter === 'purchased') {
-      return transactions.filter((t) => t.isPositive);
-    }
-    if (selectedFilter === 'spent') {
-      return transactions.filter((t) => !t.isPositive);
-    }
-    return transactions;
-  }, [selectedFilter, transactions]);
+  // Filtering logic removed as we only show purchases now
+  const filteredTransactions = transactions;
 
   const handleBuyCoins = () => {
     navigate('/male/buy-coins');
@@ -165,14 +171,7 @@ export const WalletPage = () => {
         </h3>
       </div>
 
-      {/* Segmented Controls */}
-      <div className="px-4 pb-4">
-        <SegmentedControls
-          options={filterOptions}
-          selectedOption={selectedFilter}
-          onOptionChange={setSelectedFilter}
-        />
-      </div>
+      {/* Segmented Controls removed as per user request */}
 
       {/* Transaction List */}
       <div className="flex flex-col pb-24">
@@ -200,8 +199,28 @@ export const WalletPage = () => {
               className="text-gray-400 dark:text-gray-600 mb-4"
             />
             <p className="text-gray-500 dark:text-[#cc8ea3] text-center">
-              No transactions yet
+              No purchase history found
             </p>
+          </div>
+        )}
+
+        {/* Show More Button */}
+        {hasMore && transactions.length > 0 && (
+          <div className="px-4 mt-4">
+            <button
+              onClick={handleShowMore}
+              disabled={isLoadingMore}
+              className="flex w-full items-center justify-center gap-2 rounded-xl h-12 border border-gray-200 dark:border-white/10 text-slate-700 dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+            >
+              {isLoadingMore ? (
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <MaterialSymbol name="expand_more" />
+                  <span>Show More</span>
+                </>
+              )}
+            </button>
           </div>
         )}
         <div className="h-4" />

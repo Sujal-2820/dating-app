@@ -5,14 +5,16 @@ import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import userService, { DiscoverProfile } from '../../../core/services/user.service';
 import chatService from '../../../core/services/chat.service';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
-import { InsufficientBalanceModal } from '../../../shared/components/InsufficientBalanceModal';
+import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
+import { HiSentModal } from '../components/HiSentModal';
+import offlineQueueService from '../../../core/services/offlineQueue.service';
 
-type FilterType = 'all' | 'nearby' | 'new' | 'popular';
+type FilterType = 'all' | 'online' | 'new' | 'popular';
 
 export const NearbyFemalesPage = () => {
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
-  const { coinBalance } = useGlobalState();
+  const { coinBalance, updateBalance } = useGlobalState();
 
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
@@ -21,6 +23,10 @@ export const NearbyFemalesPage = () => {
   const [sendingHiTo, setSendingHiTo] = useState<string | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [requiredCoins, setRequiredCoins] = useState(5);
+
+  // Hi Sent Modal
+  const [isHiSentModalOpen, setIsHiSentModalOpen] = useState(false);
+  const [sentHiRecipient, setSentHiRecipient] = useState({ name: '', chatId: '' });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -32,10 +38,7 @@ export const NearbyFemalesPage = () => {
       setError(null);
 
       // Map filter to API parameter
-      let apiFilter = 'all';
-      if (activeFilter === 'nearby') apiFilter = 'online'; // Use online as proxy for nearby
-      else if (activeFilter === 'new') apiFilter = 'new';
-      else if (activeFilter === 'popular') apiFilter = 'popular';
+      let apiFilter = activeFilter;
 
       const data = await userService.discoverFemales(apiFilter);
       // DEFENSIVE: Ensure profiles is always an array and handle missing properties
@@ -61,34 +64,98 @@ export const NearbyFemalesPage = () => {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  const handleSendHi = async (profileId: string) => {
+  // Process offline queue when back online
+  useEffect(() => {
+    const processOfflineQueue = async () => {
+      await offlineQueueService.processQueue(async (queuedMsg) => {
+        try {
+          if (queuedMsg.type === 'hi') {
+            await chatService.sendHiMessage(queuedMsg.data.profileId);
+            return true;
+          }
+          return false;
+        } catch (err) {
+          console.error('[QueueProcessor] Failed to send queued Hi:', err);
+          return false;
+        }
+      });
+    };
+
+    offlineQueueService.setOnlineCallback(processOfflineQueue);
+    if (offlineQueueService.getQueueSize() > 0) {
+      processOfflineQueue();
+    }
+  }, []);
+
+  const handleSendHi = async (profileId: string, profileName: string) => {
     if (coinBalance < 5) {
       setRequiredCoins(5);
       setIsBalanceModalOpen(true);
       return;
     }
 
+    // STEP 1: Deduct coins IMMEDIATELY (optimistic)
+    updateBalance(coinBalance - 5);
+
     try {
       setSendingHiTo(profileId);
       const result = await chatService.sendHiMessage(profileId);
-      // Navigate to the chat
-      navigate(`/male/chat/${result.chatId}`);
+
+      // Show success modal
+      setSentHiRecipient({ name: profileName, chatId: result.chatId });
+      setIsHiSentModalOpen(true);
     } catch (err: any) {
       console.error('Failed to send Hi:', err);
-      const errorMessage = err.response?.data?.message || '';
-      if (errorMessage.toLowerCase().includes('insufficient') || errorMessage.toLowerCase().includes('balance')) {
-        setRequiredCoins(5);
-        setIsBalanceModalOpen(true);
+
+      // STEP 2: If offline or network error, queue it
+      if (!offlineQueueService.isOnline() || err.code === 'ERR_NETWORK') {
+        console.log('[NearbyFemales] Offline detected, queuing Hi');
+
+        offlineQueueService.queueMessage('hi', {
+          profileId,
+          profileName
+        }, 5);
+
+        // Still show success modal but maybe we can't navigate to chat yet
+        setSentHiRecipient({ name: profileName, chatId: '' }); // No chatId yet
+        setIsHiSentModalOpen(true);
+        // We might want to alert that it's queued
       } else {
-        alert(errorMessage || 'Failed to send Hi message');
+        const errorMessage = err.response?.data?.message || '';
+        if (errorMessage.toLowerCase().includes('insufficient') || errorMessage.toLowerCase().includes('balance')) {
+          setRequiredCoins(5);
+          setIsBalanceModalOpen(true);
+        } else {
+          alert(errorMessage || 'Failed to send Hi message');
+        }
+        // Refund optimistic deduction on non-network errors? 
+        // User rules say "Coins are NEVER refunded", but usually that's for successful queueing.
+        // If it's a 400 error, we probably should restore balance IF we want to be nice, 
+        // but the prompt says "coins get deducted for every Hi... in the queue."
+        // If it fails immediately with a non-network error, it's NOT in the queue.
+        // So I'll restore balance for non-network errors.
+        updateBalance(coinBalance);
       }
     } finally {
       setSendingHiTo(null);
     }
   };
 
-  const handleProfileClick = (profileId: string) => {
-    navigate(`/male/profile/${profileId}`);
+  const handleProfileClick = async (profileId: string) => {
+    try {
+      // Get or create chat with this user
+      const chat = await chatService.getOrCreateChat(profileId);
+      // Navigate to the chat using _id
+      const chatId = chat._id || chat.chatId;
+      if (chatId) {
+        navigate(`/male/chat/${chatId}`);
+      } else {
+        throw new Error('Chat ID not found in response');
+      }
+    } catch (err: any) {
+      console.error('Failed to open chat:', err);
+      alert(err.response?.data?.message || 'Failed to open chat');
+    }
   };
 
   return (
@@ -104,8 +171,8 @@ export const NearbyFemalesPage = () => {
               Recommend
             </button>
             <button
-              className={`pb-1 ${activeFilter === 'nearby' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
-              onClick={() => setActiveFilter('nearby')}
+              className={`pb-1 ${activeFilter === 'online' ? 'text-slate-900 dark:text-white border-b-2 border-primary' : 'text-slate-500 dark:text-slate-400'}`}
+              onClick={() => setActiveFilter('online')}
             >
               Online
             </button>
@@ -161,20 +228,20 @@ export const NearbyFemalesPage = () => {
         {!isLoading && !error && profiles.map((profile) => (
           <div
             key={profile.id}
-            className="bg-white dark:bg-[#2d1a24] rounded-2xl shadow-sm border border-pink-100/60 dark:border-pink-900/30 px-3 py-2.5 flex items-center gap-3"
+            onClick={() => handleProfileClick(profile.id)}
+            className="bg-white dark:bg-[#2d1a24] rounded-2xl shadow-sm border border-pink-100/60 dark:border-pink-900/30 px-3 py-2.5 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow"
           >
             <div className="relative">
               <img
                 src={profile.avatar || 'https://via.placeholder.com/48?text=?'}
                 alt={profile.name}
-                className="h-12 w-12 rounded-xl object-cover border border-pink-100 dark:border-pink-800 cursor-pointer"
-                onClick={() => handleProfileClick(profile.id)}
+                className="h-12 w-12 rounded-xl object-cover border border-pink-100 dark:border-pink-800"
               />
               {profile.isOnline && (
                 <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-400 ring-2 ring-white dark:ring-[#2d1a24]" />
               )}
             </div>
-            <div className="flex-1 min-w-0" onClick={() => handleProfileClick(profile.id)}>
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold truncate">{profile.name}</p>
                 {profile.occupation && (
@@ -194,14 +261,20 @@ export const NearbyFemalesPage = () => {
               )}
             </div>
             <button
-              onClick={() => handleSendHi(profile.id)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                handleSendHi(profile.id, profile.name);
+              }}
               disabled={sendingHiTo === profile.id}
-              className="px-4 py-2 rounded-full text-sm font-bold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform disabled:opacity-50"
+              className="px-4 py-2 rounded-full text-sm font-bold text-white bg-gradient-to-r from-primary to-rose-500 shadow-md active:scale-95 transition-transform disabled:opacity-50 flex items-center gap-1"
             >
               {sendingHiTo === profile.id ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                'Hi'
+                <>
+                  <span>👋</span>
+                  <span>Hi</span>
+                </>
               )}
             </button>
           </div>
@@ -215,7 +288,18 @@ export const NearbyFemalesPage = () => {
       <InsufficientBalanceModal
         isOpen={isBalanceModalOpen}
         onClose={() => setIsBalanceModalOpen(false)}
+        onBuyCoins={() => navigate('/male/buy-coins')}
         requiredCoins={requiredCoins}
+        currentBalance={coinBalance || 0}
+        action="send a Hi"
+      />
+
+      {/* Hi Sent Success Modal */}
+      <HiSentModal
+        isOpen={isHiSentModalOpen}
+        onClose={() => setIsHiSentModalOpen(false)}
+        onGoToChat={() => navigate(`/male/chat/${sentHiRecipient.chatId}`)}
+        recipientName={sentHiRecipient.name}
       />
     </div>
   );

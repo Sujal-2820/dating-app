@@ -11,6 +11,7 @@ import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
+import offlineQueueService from '../../../core/services/offlineQueue.service';
 import type { Chat as ApiChat, Message as ApiMessage } from '../../../core/types/chat.types';
 
 export const ChatWindowPage = () => {
@@ -24,6 +25,7 @@ export const ChatWindowPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableBalance, setAvailableBalance] = useState<number>(0);
 
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
@@ -35,6 +37,30 @@ export const ChatWindowPage = () => {
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Fetch available balance
+  useEffect(() => {
+    const fetchAvailableBalance = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('matchmint_auth_token');
+
+        const response = await fetch(`${API_URL}/users/female/dashboard`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          setAvailableBalance(data.data.earnings.availableBalance || 0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch available balance:', err);
+        setAvailableBalance(0);
+      }
+    };
+    fetchAvailableBalance();
   }, []);
 
   // Fetch chat info and messages
@@ -77,6 +103,37 @@ export const ChatWindowPage = () => {
       }
     };
   }, [chatId, navigate]);
+
+  // Process offline queue when back online
+  useEffect(() => {
+    const processOfflineQueue = async () => {
+      if (!chatId) return;
+
+      await offlineQueueService.processQueue(async (queuedMsg) => {
+        try {
+          if (queuedMsg.type === 'message' && queuedMsg.data.chatId === chatId) {
+            const result = await chatService.sendMessage(queuedMsg.data.chatId, queuedMsg.data.content);
+
+            // Replace queued message with real message
+            setMessages(prev => prev.map(m =>
+              m._id === queuedMsg.data.optimisticMessageId ? result.message : m
+            ));
+
+            return true;
+          }
+          return false;
+        } catch (err) {
+          console.error('[QueueProcessor] Failed to send queued message:', err);
+          return false;
+        }
+      });
+    };
+
+    offlineQueueService.setOnlineCallback(processOfflineQueue);
+    if (offlineQueueService.getQueueSize() > 0) {
+      processOfflineQueue();
+    }
+  }, [chatId]);
 
   // Socket event listeners
   useEffect(() => {
@@ -136,15 +193,53 @@ export const ChatWindowPage = () => {
   const handleSendMessage = async (content: string) => {
     if (!chatId || isSending) return;
 
+    // STEP 1: Create optimistic message for UI
+    const optimisticMessage: ApiMessage = {
+      _id: `temp_${Date.now()}`,
+      chatId: chatId,
+      senderId: currentUserId,
+      content,
+      messageType: 'text',
+      status: 'sending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as any;
+
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
       setIsSending(true);
       setError(null);
 
       const result = await chatService.sendMessage(chatId, content);
-      setMessages(prev => [...prev, result.message]);
+
+      // STEP 2: Replace optimistic message
+      setMessages(prev => prev.map(m =>
+        m._id === optimisticMessage._id ? result.message : m
+      ));
     } catch (err: any) {
       console.error('Failed to send message:', err);
-      setError(err.response?.data?.message || 'Failed to send message');
+
+      // STEP 3: If offline or network error, queue it
+      if (!offlineQueueService.isOnline() || err.code === 'ERR_NETWORK') {
+        offlineQueueService.queueMessage('message', {
+          chatId,
+          content,
+          optimisticMessageId: optimisticMessage._id,
+        }, 0); // Cost is 0 for females
+
+        setMessages(prev => prev.map(m =>
+          m._id === optimisticMessage._id
+            ? { ...m, status: 'queued' as any }
+            : m
+        ));
+
+        setError('Message queued. Will send when back online.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to send message');
+        // Remove optimistic message on non-network errors
+        setMessages(prev => prev.filter(m => m._id !== optimisticMessage._id));
+      }
     } finally {
       setIsSending(false);
     }
@@ -157,10 +252,11 @@ export const ChatWindowPage = () => {
   };
 
   const handleViewProfile = () => {
-    if (chatInfo?.otherUser._id) {
+    if (chatInfo) {
       navigate(`/female/profile/${chatInfo.otherUser._id}`);
     }
   };
+
 
   if (isLoading) {
     return (
@@ -192,7 +288,7 @@ export const ChatWindowPage = () => {
         userAvatar={chatInfo.otherUser.avatar || ''}
         isOnline={chatInfo.otherUser.isOnline}
         onMoreClick={handleMoreClick}
-        coinBalance={coinBalance}
+        coinBalance={availableBalance}
       />
 
       {/* Error Banner */}

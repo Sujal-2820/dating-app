@@ -39,7 +39,24 @@ export const getDashboardData = async (req, res, next) => {
         ]);
         const totalEarnings = totalEarningsData.length > 0 ? totalEarningsData[0].total : 0;
 
-        // 3. Aggregate Pending Withdrawals
+        // 3. Aggregate Total Withdrawals (Completed withdrawals)
+        const totalWithdrawalsData = await Withdrawal.aggregate([
+            {
+                $match: {
+                    userId: currentUserId,
+                    status: 'completed'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$coinsRequested' }
+                }
+            }
+        ]);
+        const totalWithdrawals = totalWithdrawalsData.length > 0 ? totalWithdrawalsData[0].total : 0;
+
+        // 4. Aggregate Pending Withdrawals
         const pendingWithdrawalData = await Withdrawal.aggregate([
             {
                 $match: {
@@ -56,21 +73,24 @@ export const getDashboardData = async (req, res, next) => {
         ]);
         const pendingWithdrawals = pendingWithdrawalData.length > 0 ? pendingWithdrawalData[0].total : 0;
 
-        // 4. Stats: Messages Received
+        // Calculate Available Balance = Total Earnings - Total Withdrawals
+        const availableBalance = totalEarnings - totalWithdrawals;
+
+        // 5. Stats: Messages Received
         const messagesReceived = await Message.countDocuments({
             receiverId: currentUserId
         });
 
-        // 5. Stats: Active Conversations
+        // 6. Stats: Active Conversations
         const activeConversations = await Chat.countDocuments({
             'participants.userId': currentUserId,
             isActive: true
         });
 
-        // 6. Stats: Profile Views (Mocked)
+        // 7. Stats: Profile Views (Mocked)
         const profileViews = 0;
 
-        // 7. Active Chats (Top 5)
+        // 8. Active Chats (Top 5)
         const chats = await Chat.find({
             'participants.userId': currentUserId,
             isActive: true,
@@ -115,7 +135,7 @@ export const getDashboardData = async (req, res, next) => {
                 },
                 earnings: {
                     totalEarnings,
-                    availableBalance: user.coinBalance,
+                    availableBalance,
                     pendingWithdrawals,
                 },
                 stats: {

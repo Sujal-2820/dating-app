@@ -134,12 +134,18 @@ export const sendMessage = async (req, res, next) => {
         });
 
         // Update chat with intimacy tracking
-        const previousTotalMessages = chat.totalMessageCount || 0;
+        // Only count MALE messages for intimacy level progression
+        const maleParticipant = chat.participants.find(p => p.role === 'male');
+        const maleUserId = maleParticipant?.userId.toString();
+
+        // Get current male message count
+        const previousMaleMessages = maleUserId ? (chat.messageCountByUser?.get(maleUserId) || 0) : 0;
+
         chat.lastMessage = message._id;
         chat.lastMessageAt = new Date();
         await chat.incrementUnread(senderId);
 
-        // Track message count for intimacy level
+        // Track message count per user
         chat.totalMessageCount = (chat.totalMessageCount || 0) + 1;
         const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + 1;
         if (!chat.messageCountByUser) {
@@ -147,14 +153,17 @@ export const sendMessage = async (req, res, next) => {
         }
         chat.messageCountByUser.set(senderId.toString(), userMessageCount);
 
-        // Check for level up
-        const levelUpCheck = checkLevelUp(previousTotalMessages, chat.totalMessageCount);
+        // Check for level up ONLY based on male messages
         let levelUpInfo = null;
-        if (levelUpCheck.leveledUp) {
-            chat.intimacyLevel = levelUpCheck.newLevel;
-            chat.lastLevelUpAt = new Date();
-            levelUpInfo = levelUpCheck.newLevelInfo;
-            logger.info(`🎉 Chat ${chatId} leveled up: ${levelUpCheck.previousLevel} → ${levelUpCheck.newLevel}`);
+        if (req.user.role === 'male') {
+            const newMaleMessages = userMessageCount; // Current sender is male
+            const levelUpCheck = checkLevelUp(previousMaleMessages, newMaleMessages);
+            if (levelUpCheck.leveledUp) {
+                chat.intimacyLevel = levelUpCheck.newLevel;
+                chat.lastLevelUpAt = new Date();
+                levelUpInfo = levelUpCheck.newLevelInfo;
+                logger.info(`🎉 Chat ${chatId} leveled up: ${levelUpCheck.previousLevel} → ${levelUpCheck.newLevel}`);
+            }
         }
 
         await chat.save();
@@ -191,7 +200,7 @@ export const sendMessage = async (req, res, next) => {
                 message: populatedMessage,
                 newBalance: req.user.role === 'male' ? (await User.findById(senderId)).coinBalance : undefined,
                 levelUp: levelUpInfo,
-                intimacy: getLevelInfo(chat.totalMessageCount),
+                intimacy: maleUserId ? getLevelInfo(chat.messageCountByUser.get(maleUserId) || 0) : null,
             }
         });
     } catch (error) {
@@ -295,12 +304,18 @@ export const sendHiMessage = async (req, res, next) => {
         });
 
         // Update chat with intimacy tracking
-        const previousTotalMessages = chat.totalMessageCount || 0;
+        // Only count MALE messages for intimacy level progression
+        const maleParticipant = chat.participants.find(p => p.role === 'male');
+        const maleUserId = maleParticipant?.userId.toString();
+
+        // Get current male message count (sender is always male for Hi message)
+        const previousMaleMessages = chat.messageCountByUser?.get(senderId.toString()) || 0;
+
         chat.lastMessage = message._id;
         chat.lastMessageAt = new Date();
         await chat.incrementUnread(senderId);
 
-        // Track message count for intimacy level
+        // Track message count per user
         chat.totalMessageCount = (chat.totalMessageCount || 0) + 1;
         const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + 1;
         if (!chat.messageCountByUser) {
@@ -308,8 +323,8 @@ export const sendHiMessage = async (req, res, next) => {
         }
         chat.messageCountByUser.set(senderId.toString(), userMessageCount);
 
-        // Check for level up
-        const levelUpCheck = checkLevelUp(previousTotalMessages, chat.totalMessageCount);
+        // Check for level up based on male messages
+        const levelUpCheck = checkLevelUp(previousMaleMessages, userMessageCount);
         let levelUpInfo = null;
         if (levelUpCheck.leveledUp) {
             chat.intimacyLevel = levelUpCheck.newLevel;
@@ -349,7 +364,7 @@ export const sendHiMessage = async (req, res, next) => {
                 newBalance: result.newBalance,
                 coinsSpent: HI_MESSAGE_COST,
                 levelUp: levelUpInfo,
-                intimacy: getLevelInfo(chat.totalMessageCount),
+                intimacy: getLevelInfo(userMessageCount),
             }
         });
     } catch (error) {
@@ -464,12 +479,18 @@ export const sendGift = async (req, res, next) => {
         });
 
         // Update chat with intimacy tracking
-        const previousTotalMessages = chat.totalMessageCount || 0;
+        // Only count MALE messages for intimacy level progression (sender is always male for gifts)
+        const maleParticipant = chat.participants.find(p => p.role === 'male');
+        const maleUserId = maleParticipant?.userId.toString();
+
+        // Get current male message count
+        const previousMaleMessages = chat.messageCountByUser?.get(senderId.toString()) || 0;
+
         chat.lastMessage = message._id;
         chat.lastMessageAt = new Date();
         await chat.incrementUnread(senderId);
 
-        // Track message count for intimacy level
+        // Track message count per user
         chat.totalMessageCount = (chat.totalMessageCount || 0) + 1;
         const userMessageCount = (chat.messageCountByUser?.get(senderId.toString()) || 0) + 1;
         if (!chat.messageCountByUser) {
@@ -477,8 +498,8 @@ export const sendGift = async (req, res, next) => {
         }
         chat.messageCountByUser.set(senderId.toString(), userMessageCount);
 
-        // Check for level up
-        const levelUpCheck = checkLevelUp(previousTotalMessages, chat.totalMessageCount);
+        // Check for level up based on male messages
+        const levelUpCheck = checkLevelUp(previousMaleMessages, userMessageCount);
         let levelUpInfo = null;
         if (levelUpCheck.leveledUp) {
             chat.intimacyLevel = levelUpCheck.newLevel;
@@ -517,7 +538,7 @@ export const sendGift = async (req, res, next) => {
                 newBalance: result.newBalance,
                 coinsSpent: totalCost,
                 levelUp: levelUpInfo,
-                intimacy: getLevelInfo(chat.totalMessageCount),
+                intimacy: getLevelInfo(userMessageCount),
             }
         });
     } catch (error) {

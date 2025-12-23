@@ -2,6 +2,7 @@ import express from 'express';
 import * as userController from '../../controllers/user/userController.js';
 import * as statsController from '../../controllers/user/statsController.js';
 import * as femaleDashboardController from '../../controllers/user/femaleDashboardController.js';
+import autoMessageController from '../../controllers/user/autoMessageController.js';
 import { protect, restrictTo } from '../../middleware/auth.js';
 
 const router = express.Router();
@@ -16,6 +17,13 @@ router.get('/me/stats', statsController.getMeStats);
 
 // Female Dashboard
 router.get('/female/dashboard', restrictTo('female'), femaleDashboardController.getDashboardData);
+
+// Auto-Message Templates (Female only)
+router.get('/female/auto-messages/stats', restrictTo('female'), autoMessageController.getStats);
+router.get('/female/auto-messages', restrictTo('female'), autoMessageController.getTemplates);
+router.post('/female/auto-messages', restrictTo('female'), autoMessageController.createTemplate);
+router.put('/female/auto-messages/:id', restrictTo('female'), autoMessageController.updateTemplate);
+router.delete('/female/auto-messages/:id', restrictTo('female'), autoMessageController.deleteTemplate);
 
 // Discovery and User Profiles
 router.patch('/me', userController.updateProfile);

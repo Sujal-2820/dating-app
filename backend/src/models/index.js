@@ -21,4 +21,6 @@ export { default as Gift } from './Gift.js';
 export { default as Notification } from './Notification.js';
 export { default as AuditLog } from './AuditLog.js';
 export { default as AppSettings } from './AppSettings.js';
+export { default as AutoMessageTemplate } from './AutoMessageTemplate.js';
+export { default as AutoMessageLog } from './AutoMessageLog.js';
 

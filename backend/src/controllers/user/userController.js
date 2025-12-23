@@ -73,15 +73,19 @@ export const discoverFemales = async (req, res, next) => {
             isBlocked: { $ne: true },
         };
 
-        // Filter options
-        let sortOption = { lastSeen: -1 };
+        // Filter and Sort options
+        let sortOption = { isOnline: -1, lastSeen: -1 }; // Default: "Recommend" (Online first, then recently seen)
 
         if (filter === 'online') {
             query.isOnline = true;
+            sortOption = { lastSeen: -1 };
         } else if (filter === 'new') {
             sortOption = { createdAt: -1 };
         } else if (filter === 'popular') {
-            sortOption = { coinBalance: -1 };
+            sortOption = { coinBalance: -1, lastSeen: -1 };
+        } else if (filter === 'all') {
+            // Recommend: Online users at top, then by lastSeen
+            sortOption = { isOnline: -1, lastSeen: -1 };
         }
 
         // CRITICAL: Select correct language fields based on user preference

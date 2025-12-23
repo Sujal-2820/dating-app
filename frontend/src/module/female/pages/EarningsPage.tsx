@@ -18,6 +18,7 @@ export const EarningsPage = () => {
   const [summary, setSummary] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [visibleEarningsCount, setVisibleEarningsCount] = useState(10);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -86,6 +87,10 @@ export const EarningsPage = () => {
         return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     }
   };
+
+  // Filter earnings transactions
+  const earningsTransactions = transactions.filter((t) => t.direction === 'credit' && t.type !== 'purchase');
+  const hasMoreEarnings = earningsTransactions.length > visibleEarningsCount;
 
   return (
     <div className="flex flex-col bg-background-light dark:bg-background-dark min-h-screen pb-20">
@@ -156,7 +161,10 @@ export const EarningsPage = () => {
               {Object.entries(earningsByType).map(([type, amount]) => (
                 <div key={type} className="bg-white dark:bg-[#342d18] rounded-xl p-4 text-center shadow-sm">
                   <MaterialSymbol name={getTypeIcon(type)} className="text-primary mb-1" size={24} />
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">{amount as number}</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{amount as number}</p>
+                    <MaterialSymbol name="monetization_on" filled size={16} className="text-yellow-600 dark:text-gold" />
+                  </div>
                   <p className="text-xs text-gray-500 dark:text-[#cbbc90]">{formatType(type)}</p>
                 </div>
               ))}
@@ -182,40 +190,51 @@ export const EarningsPage = () => {
           {/* Earnings History */}
           <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Earnings</h2>
-            {transactions.length === 0 ? (
+            {earningsTransactions.length === 0 ? (
               <div className="text-center py-8">
                 <MaterialSymbol name="account_balance_wallet" size={48} className="text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-500 dark:text-[#cbbc90]">No earnings yet</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {transactions
-                  .filter((t) => t.direction === 'credit' && t.type !== 'purchase')
-                  .slice(0, 20)
-                  .map((tx) => (
-                    <div
-                      key={tx._id}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-[#342d18] rounded-xl shadow-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
-                          <MaterialSymbol name={getTypeIcon(tx.type)} filled />
+              <>
+                <div className="space-y-3">
+                  {earningsTransactions
+                    .slice(0, visibleEarningsCount)
+                    .map((tx) => (
+                      <div
+                        key={tx._id}
+                        className="flex items-center justify-between p-4 bg-white dark:bg-[#342d18] rounded-xl shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600">
+                            <MaterialSymbol name={getTypeIcon(tx.type)} filled />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {formatType(tx.type)}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-[#cbbc90]">
+                              {new Date(tx.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">
-                            {formatType(tx.type)}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-[#cbbc90]">
-                            {new Date(tx.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
+                        <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                          +{tx.amountCoins}
+                        </p>
                       </div>
-                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                        +{tx.amountCoins}
-                      </p>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                </div>
+
+                {/* Show More Button */}
+                {hasMoreEarnings && (
+                  <button
+                    onClick={() => setVisibleEarningsCount(prev => prev + 10)}
+                    className="w-full mt-4 px-4 py-3 bg-gray-200 dark:bg-[#342d18] text-gray-700 dark:text-white font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors"
+                  >
+                    Show More
+                  </button>
+                )}
+              </>
             )}
           </div>
         </>

@@ -97,11 +97,14 @@ export interface AutoMessageTemplate {
   id: string;
   name: string;
   content: string;
-  triggerType: 'time_based' | 'keyword_based' | 'manual';
-  triggerCondition?: string;
   isEnabled: boolean;
+  isDefault?: boolean;
   createdAt: string;
   updatedAt: string;
+  stats?: {
+    sentCount: number;
+    lastSentAt?: string;
+  };
 }
 
 export interface Notification {

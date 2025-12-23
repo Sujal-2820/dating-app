@@ -1,71 +1,83 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { MaleTopNavbar } from '../components/MaleTopNavbar';
-import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import userService from '../../../core/services/user.service';
+
+interface UserProfile {
+  _id: string;
+  name: string;
+  bio?: string;
+  age?: number;
+  location?: string;
+  occupation?: string;
+  photos: { url: string; isPrimary: boolean }[];
+  isOnline?: boolean;
+  isVerified?: boolean;
+}
 
 export const UserProfilePage = () => {
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
-  const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
+  const { navigationItems, handleNavigationClick } = useMaleNavigation();
 
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (profileId) {
-      fetchProfile();
-    }
+    fetchProfile();
   }, [profileId]);
 
   const fetchProfile = async () => {
+    console.log('[UserProfilePage] fetchProfile called, profileId:', profileId);
+
+    if (!profileId) {
+      console.error('[UserProfilePage] No profileId provided');
+      setError('No user ID');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
-      const data = await userService.getUserProfile(profileId!);
 
-      // Transform backend data to frontend format if needed
-      const sanitizedProfile = {
-        id: data.id || data._id,
-        name: data.profile?.name || data.name || 'Anonymous',
-        age: data.profile?.age || data.age,
-        avatar: data.profile?.photos?.[0]?.url || data.avatar || '',
-        distance: data.distance || 'Unknown distance',
-        isOnline: !!data.isOnline,
-        occupation: data.profile?.occupation || data.occupation || '',
-        chatCost: data.chatCost || 50,
-        bio: data.profile?.bio || data.bio || '',
-        interests: data.profile?.interests || data.interests || [],
-        photos: data.profile?.photos?.map((p: any) => p.url) || data.photos || []
+      console.log('[UserProfilePage] Fetching profile...');
+      const data = await userService.getUserProfile(profileId);
+      console.log('[UserProfilePage] Profile data received:', data);
+
+      // Map backend response to frontend structure
+      const mappedProfile: UserProfile = {
+        _id: data.id || data._id,
+        name: data.name,
+        bio: data.bio,
+        age: data.age,
+        location: data.city || data.location,
+        occupation: data.occupation,
+        photos: data.photos || [],
+        isOnline: data.isOnline,
+        isVerified: data.isVerified,
       };
 
-      setProfile(sanitizedProfile);
+      console.log('[UserProfilePage] Mapped profile:', mappedProfile);
+      setProfile(mappedProfile);
     } catch (err: any) {
-      console.error('Failed to fetch profile:', err);
-      setError(err.response?.data?.message || 'Failed to load profile');
+      console.error('[UserProfilePage] Error fetching profile:', err);
+      console.error('[UserProfilePage] Error response:', err.response);
+      setError(err.response?.data?.message || err.message || 'Failed to load profile');
     } finally {
+      console.log('[UserProfilePage] Setting isLoading to false');
       setIsLoading(false);
-    }
-  };
-
-  const handleBackClick = () => {
-    navigate(-1);
-  };
-
-  const handleChatClick = () => {
-    if (profile) {
-      navigate(`/male/chat/${profile.id}`);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+      <div className="flex items-center justify-center h-screen bg-background-light dark:bg-background-dark">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -73,145 +85,170 @@ export const UserProfilePage = () => {
 
   if (error || !profile) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark">
-        <div className="text-center p-4">
-          <MaterialSymbol name="person_off" size={48} className="text-gray-400 dark:text-gray-600 mb-4 mx-auto" />
-          <p className="text-gray-500 dark:text-[#cc8ea3]">{error || 'Profile not found'}</p>
-          <button
-            onClick={handleBackClick}
-            className="mt-4 px-4 py-2 bg-primary text-black rounded-xl font-medium"
-          >
-            Go Back
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center h-screen bg-background-light dark:bg-background-dark p-4">
+        <MaterialSymbol name="error" size={48} className="text-red-500 mb-4" />
+        <p className="text-gray-500 dark:text-gray-400 mb-4">{error || 'Profile not found'}</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="px-4 py-2 bg-primary text-slate-900 font-bold rounded-lg"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
 
-  const isPrimaryButton = profile.isOnline || profile.bio?.includes('New here');
+  const photos = profile.photos || [];
+  const primaryPhoto = photos.find(p => p.isPrimary) || photos[0];
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-white pb-24 min-h-screen">
-      {/* Top Navbar */}
-      <MaleTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
-
-      {/* Sidebar */}
-      <MaleSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        items={navigationItems}
-        onItemClick={handleNavigationClick}
-      />
-
-      {/* Header */}
-      <header className="sticky top-[57px] z-30 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-black/5 dark:border-white/5">
-        <div className="flex items-center justify-between px-4 py-3">
+    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark pb-20">
+      {/* Header with Back Button */}
+      <header className="sticky top-0 z-30 bg-white dark:bg-[#2d1a24] border-b border-gray-200 dark:border-white/5 px-4 py-3">
+        <div className="flex items-center gap-3">
           <button
-            onClick={handleBackClick}
-            className="flex items-center justify-center size-10 rounded-full bg-white dark:bg-[#342d18] text-slate-600 dark:text-white hover:bg-gray-100 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
-            aria-label="Go back"
+            onClick={() => navigate(-1)}
+            className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-200 dark:bg-[#342d18] text-gray-600 dark:text-white hover:bg-gray-300 dark:hover:bg-[#4b202e] transition-colors active:scale-95"
           >
-            <MaterialSymbol name="arrow_back" size={24} />
+            <MaterialSymbol name="arrow_back" />
           </button>
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white">Profile</h1>
-          <div className="size-10" /> {/* Spacer for centering */}
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Profile</h1>
         </div>
       </header>
 
-      {/* Profile Image */}
-      <div className="relative w-full aspect-[3/4] bg-gray-200 dark:bg-[#342d18]">
-        <img
-          alt={`${profile.name} profile picture`}
-          className="absolute inset-0 h-full w-full object-cover"
-          src={profile.avatar}
-        />
-        {/* Distance Badge */}
-        <div className="absolute top-4 left-4">
-          <div className="flex items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-3 py-1.5">
-            <MaterialSymbol name="location_on" size={16} className="text-white" />
-            <span className="text-xs font-bold text-white">{profile.distance}</span>
-          </div>
-        </div>
-        {/* Online Status Badge */}
-        {profile.isOnline && (
-          <div className="absolute top-4 right-4">
-            <div className="flex items-center gap-1 rounded-full bg-green-500/90 backdrop-blur-sm px-3 py-1.5 shadow-sm">
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Online</span>
-            </div>
+      {/* Profile Content */}
+      <main className="flex-1 overflow-y-auto">
+        {/* Profile Picture */}
+        {primaryPhoto && (
+          <div className="relative w-full aspect-square max-h-[500px] bg-gray-200 dark:bg-[#342d18]">
+            <img
+              src={primaryPhoto.url}
+              alt={profile.name}
+              className="w-full h-full object-cover cursor-pointer"
+              onClick={() => setSelectedPhotoIndex(photos.findIndex(p => p.isPrimary) || 0)}
+            />
+            {profile.isOnline && (
+              <div className="absolute top-4 right-4 flex items-center gap-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                Online
+              </div>
+            )}
           </div>
         )}
-      </div>
 
-      {/* Profile Info */}
-      <div className="p-4 space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {profile.name}, {profile.age}
-          </h2>
-          {profile.occupation && (
-            <p className="text-base text-gray-600 dark:text-gray-400 mt-1">{profile.occupation}</p>
-          )}
-          {profile.bio && (
-            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">{profile.bio}</p>
-          )}
-        </div>
-
-        {/* Interests */}
-        {profile.interests && profile.interests.length > 0 && (
+        {/* Profile Info */}
+        <div className="px-6 py-6 space-y-6">
+          {/* Name and Verification */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Interests</h3>
-            <div className="flex flex-wrap gap-2">
-              {profile.interests.map((interest: string, index: number) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium"
-                >
-                  {interest}
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{profile.name}</h2>
+              {profile.isVerified && (
+                <MaterialSymbol name="verified" filled size={24} className="text-blue-500" />
+              )}
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+              {profile.age && <span>{profile.age} years old</span>}
+            </div>
+            {profile.occupation && (
+              <div className="mt-2">
+                <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                  {profile.occupation}
                 </span>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Photo Gallery */}
-        {profile.photos && profile.photos.length > 1 && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Photos</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {profile.photos.slice(1).map((photo: string, index: number) => (
-                <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                  <img
-                    src={photo}
-                    alt={`Photo ${index + 2}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
+          {/* Bio */}
+          {profile.bio && (
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About</h3>
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{profile.bio}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Chat Button */}
-        <button
-          onClick={handleChatClick}
-          className={`w-full flex items-center justify-center gap-2 rounded-full py-4 text-base font-bold text-white transition-all active:scale-95 ${isPrimaryButton
-              ? 'bg-primary hover:bg-yellow-400 shadow-lg shadow-primary/20'
-              : 'bg-white/20 backdrop-blur-md hover:bg-white/30 border border-white/10'
-            }`}
+          {/* Photo Gallery */}
+          {photos.length > 1 && (
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Photos</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {photos.map((photo, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setSelectedPhotoIndex(index)}
+                    className="relative aspect-square bg-gray-200 dark:bg-[#342d18] rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                  >
+                    <img
+                      src={photo.url}
+                      alt={`Photo ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {photo.isPrimary && (
+                      <div className="absolute top-1 right-1 bg-primary text-slate-900 px-2 py-0.5 rounded text-xs font-bold">
+                        Primary
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Photo Lightbox */}
+      {selectedPhotoIndex !== null && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={() => setSelectedPhotoIndex(null)}
         >
-          <MaterialSymbol name="chat_bubble" size={20} />
-          <span>Start Chat</span>
-          <div
-            className={`flex items-center gap-1 rounded px-2 py-1 text-xs ${isPrimaryButton ? 'bg-white/20' : 'bg-black/20'
-              }`}
+          <button
+            onClick={() => setSelectedPhotoIndex(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
           >
-            <MaterialSymbol name="monetization_on" size={12} />
-            <span>{profile.chatCost}</span>
-          </div>
-        </button>
-      </div>
+            <MaterialSymbol name="close" size={32} />
+          </button>
 
-      {/* Bottom Navigation Bar */}
+          {/* Navigation Arrows */}
+          {selectedPhotoIndex > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPhotoIndex(selectedPhotoIndex - 1);
+              }}
+              className="absolute left-4 text-white hover:text-gray-300 transition-colors"
+            >
+              <MaterialSymbol name="chevron_left" size={48} />
+            </button>
+          )}
+
+          {selectedPhotoIndex < photos.length - 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPhotoIndex(selectedPhotoIndex + 1);
+              }}
+              className="absolute right-4 text-white hover:text-gray-300 transition-colors"
+            >
+              <MaterialSymbol name="chevron_right" size={48} />
+            </button>
+          )}
+
+          {/* Image */}
+          <img
+            src={photos[selectedPhotoIndex].url}
+            alt={`Photo ${selectedPhotoIndex + 1}`}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Photo Counter */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+            {selectedPhotoIndex + 1} / {photos.length}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Navigation */}
       <BottomNavigation items={navigationItems} onItemClick={handleNavigationClick} />
     </div>
   );
