@@ -9,7 +9,7 @@ export interface GiftTheme {
 
 export const getGiftTheme = (gift: Gift): GiftTheme => {
   const name = gift.name.toLowerCase();
-  
+
   // Rose - Pink
   if (name.includes('rose')) {
     return {
@@ -19,7 +19,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-pink-500 dark:text-pink-400',
     };
   }
-  
+
   // Chocolate - Brown/Chocolate
   if (name.includes('chocolate')) {
     return {
@@ -29,7 +29,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-amber-700 dark:text-amber-500',
     };
   }
-  
+
   // Diamond - Blue/Cyan
   if (name.includes('diamond')) {
     return {
@@ -39,7 +39,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-cyan-400 dark:text-cyan-300',
     };
   }
-  
+
   // Heart - Red/Pink
   if (name.includes('heart')) {
     return {
@@ -49,7 +49,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-red-500 dark:text-red-400',
     };
   }
-  
+
   // Star - Yellow/Gold
   if (name.includes('star')) {
     return {
@@ -59,7 +59,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-yellow-400 dark:text-yellow-300',
     };
   }
-  
+
   // Crown - Gold/Yellow
   if (name.includes('crown')) {
     return {
@@ -69,7 +69,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-yellow-500 dark:text-yellow-400',
     };
   }
-  
+
   // Balloon - Colorful/Rainbow
   if (name.includes('balloon')) {
     return {
@@ -79,7 +79,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-purple-500 dark:text-purple-400',
     };
   }
-  
+
   // Ring - Silver/Gray
   if (name.includes('ring')) {
     return {
@@ -89,7 +89,7 @@ export const getGiftTheme = (gift: Gift): GiftTheme => {
       iconColor: 'text-gray-400 dark:text-gray-300',
     };
   }
-  
+
   // Default - Pink (for unknown gifts)
   return {
     primary: 'from-pink-500 to-pink-600',

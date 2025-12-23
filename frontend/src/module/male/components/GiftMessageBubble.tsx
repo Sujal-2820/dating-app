@@ -73,7 +73,7 @@ export const GiftMessageBubble = ({
             {/* Gift Icon */}
             <div className="flex items-center gap-4 mb-2">
               <div className="p-3 bg-white/20 dark:bg-black/20 rounded-full shadow-inner backdrop-blur-sm">
-                <img src={getGiftImage(gift.name)} alt={gift.name} className="w-12 h-12 object-contain drop-shadow-sm" />
+                <img src={gift.imageUrl || getGiftImage(gift.name)} alt={gift.name} className="w-12 h-12 object-contain drop-shadow-sm" />
               </div>
               <div className="flex-1 min-w-[100px]">
                 <h4 className="font-bold text-lg leading-tight">{gift.name}</h4>
@@ -152,7 +152,7 @@ export const GiftMessageBubble = ({
                   >
                     <div className="flex flex-col items-center gap-2">
                       <img
-                        src={getGiftImage(gift.name)}
+                        src={gift.imageUrl || getGiftImage(gift.name)}
                         alt={gift.name}
                         className="w-8 h-8 object-contain drop-shadow-md"
                       />

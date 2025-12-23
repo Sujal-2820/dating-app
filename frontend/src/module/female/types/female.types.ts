@@ -49,6 +49,7 @@ export interface Gift {
   senderId?: string; // Who sent the gift
   senderName?: string;
   quantity?: number; // Number of this gift (default: 1)
+  imageUrl?: string;
 }
 
 export interface Message {

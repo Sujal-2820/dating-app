@@ -9,8 +9,46 @@ export interface GiftTheme {
 
 export const getGiftTheme = (gift: Gift): GiftTheme => {
   const name = (gift?.name || '').toLowerCase();
+  const category = (gift?.category || '').toLowerCase();
 
-  // Rose - Pink
+  // Category Based Themes
+  if (category === 'romantic') {
+    return {
+      primary: 'from-pink-500 to-pink-600',
+      secondary: 'from-pink-400 to-pink-500',
+      dark: 'from-pink-600 to-pink-700',
+      iconColor: 'text-pink-500 dark:text-pink-400',
+    };
+  }
+
+  if (category === 'funny' || category === 'fun') {
+    return {
+      primary: 'from-amber-400 to-orange-500',
+      secondary: 'from-amber-300 to-orange-400',
+      dark: 'from-amber-500 to-orange-600',
+      iconColor: 'text-amber-500 dark:text-amber-400',
+    };
+  }
+
+  if (category === 'celebration' || category === 'party') {
+    return {
+      primary: 'from-purple-500 to-indigo-600',
+      secondary: 'from-purple-400 to-indigo-500',
+      dark: 'from-purple-600 to-indigo-700',
+      iconColor: 'text-purple-500 dark:text-purple-400',
+    };
+  }
+
+  if (category === 'special' || category === 'luxury') {
+    return {
+      primary: 'from-yellow-500 to-amber-600',
+      secondary: 'from-yellow-400 to-amber-500',
+      dark: 'from-yellow-600 to-amber-700',
+      iconColor: 'text-yellow-500 dark:text-yellow-400',
+    };
+  }
+
+  // Name Based Themes (Fallback)
   if (name.includes('rose')) {
     return {
       primary: 'from-pink-500 to-pink-600',

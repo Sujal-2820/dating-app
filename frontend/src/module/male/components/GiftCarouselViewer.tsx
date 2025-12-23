@@ -113,7 +113,7 @@ export const GiftCarouselViewer = ({
               <div className="relative">
                 <div className="p-8 bg-white/90 dark:bg-black/50 rounded-full shadow-2xl backdrop-blur-sm">
                   <img
-                    src={getGiftImage(currentGift.name)}
+                    src={currentGift.imageUrl || getGiftImage(currentGift.name)}
                     alt={currentGift.name}
                     className="w-32 h-32 object-contain drop-shadow-xl"
                   />

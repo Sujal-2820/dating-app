@@ -72,8 +72,14 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
                 setIsFetchingLocation(false);
             },
             (err) => {
-                console.error('Geolocation error:', err);
-                setError('Failed to get your location. Please enter manually.');
+                // Code 1 is PERMISSION_DENIED
+                if (err.code === 1) {
+                    console.warn('User denied geolocation permission');
+                    setError('Location permission denied. Please enter manually.');
+                } else {
+                    console.error('Geolocation error:', err);
+                    setError('Failed to get your location. Please enter manually.');
+                }
                 setIsFetchingLocation(false);
             },
             {

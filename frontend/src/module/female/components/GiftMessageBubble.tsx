@@ -26,7 +26,7 @@ export const GiftMessageBubble = ({
   if (!isMultiple) {
     const gift = gifts[0];
     const theme = getGiftTheme(gift);
-    
+
     return (
       <>
         <div className="flex justify-start mb-3 px-4">
@@ -35,7 +35,15 @@ export const GiftMessageBubble = ({
               {/* Gift Icon */}
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 bg-gradient-to-br ${theme.primary} rounded-full`}>
-                  <MaterialSymbol name={gift.icon as any} size={32} className="text-white" />
+                  {gift.imageUrl ? (
+                    <img
+                      src={gift.imageUrl}
+                      alt={gift.name}
+                      className="w-8 h-8 object-contain drop-shadow-sm"
+                    />
+                  ) : (
+                    <MaterialSymbol name={gift.icon as any} size={32} className="text-white" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-base">{gift.name}</h4>
@@ -120,7 +128,7 @@ export const GiftMessageBubble = ({
                 const offsetX = (index - (totalVisible - 1) / 2) * 12;
                 const offsetY = index * 6;
                 const theme = getGiftTheme(gift);
-                
+
                 return (
                   <div
                     key={gift.id}
@@ -135,11 +143,19 @@ export const GiftMessageBubble = ({
                     }}
                   >
                     <div className="flex flex-col items-center gap-2">
-                      <MaterialSymbol 
-                        name={gift.icon as any} 
-                        size={32} 
-                        className="text-white drop-shadow-md"
-                      />
+                      {gift.imageUrl ? (
+                        <img
+                          src={gift.imageUrl}
+                          alt={gift.name}
+                          className="w-8 h-8 object-contain drop-shadow-md"
+                        />
+                      ) : (
+                        <MaterialSymbol
+                          name={gift.icon as any}
+                          size={32}
+                          className="text-white drop-shadow-md"
+                        />
+                      )}
                       <span className="text-sm font-bold text-center text-white drop-shadow-md">{gift.name}</span>
                       {index === 0 && gifts.length > 4 && (
                         <div className={`absolute -top-1 -right-1 bg-gradient-to-br ${theme.primary} rounded-full size-6 flex items-center justify-center shadow-md`}>

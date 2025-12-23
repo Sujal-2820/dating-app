@@ -82,7 +82,10 @@ export const ChatWindowPage = () => {
   useEffect(() => {
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
       if (data.chatId === chatId) {
-        setMessages(prev => [...prev, data.message]);
+        setMessages(prev => {
+          if (prev.some(m => m._id === data.message._id)) return prev;
+          return [...prev, data.message];
+        });
         scrollToBottom();
       }
     };
@@ -227,22 +230,23 @@ export const ChatWindowPage = () => {
             ? message.senderId.profile?.name
             : 'User';
 
-          return message.messageType === 'gift' && message.gift ? (
+          return message.messageType === 'gift' && message.gifts && message.gifts.length > 0 ? (
             <GiftMessageBubble
               key={message._id}
-              gifts={[{
-                id: message.gift.giftId,
-                name: message.gift.giftName,
+              gifts={message.gifts.map(g => ({
+                id: g.giftId,
+                name: g.giftName,
                 icon: 'redeem',
-                cost: message.gift.giftCost,
-                tradeValue: Math.floor(message.gift.giftCost * 0.5),
+                imageUrl: g.giftImage,
+                cost: g.giftCost,
+                tradeValue: Math.floor(g.giftCost * 0.5),
                 description: '',
                 category: 'romantic',
                 receivedAt: new Date(message.createdAt),
                 senderId: String(senderId),
                 senderName: senderName || 'User',
                 quantity: 1,
-              }]}
+              }))}
               note=""
               timestamp={new Date(message.createdAt)}
               senderName={senderName || 'User'}

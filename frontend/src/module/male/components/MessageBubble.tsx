@@ -15,7 +15,13 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
   if (message.type === 'gift' && message.gifts && message.gifts.length > 0) {
     return (
       <GiftMessageBubble
-        gifts={message.gifts}
+        gifts={message.gifts.map((g: any) => ({
+          ...g,
+          id: g.id || g.giftId,
+          name: g.name || g.giftName,
+          cost: g.cost || g.giftCost,
+          imageUrl: g.imageUrl || g.giftImage
+        }))}
         note={message.giftNote}
         timestamp={message.timestamp}
         isSent={isSent}
@@ -60,11 +66,10 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
       <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-3 px-4`}>
         <div className={`flex flex-col max-w-[75%] ${isSent ? 'items-end' : 'items-start'}`}>
           <div
-            className={`rounded-2xl overflow-hidden ${
-              isSent
+            className={`rounded-2xl overflow-hidden ${isSent
                 ? 'bg-primary rounded-tr-sm'
                 : 'bg-white dark:bg-[#342d18] rounded-tl-sm'
-            }`}
+              }`}
           >
             <img
               src={message.content}
@@ -90,11 +95,10 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
     <div className={`flex ${isSent ? 'justify-end' : 'justify-start'} mb-3 px-4`}>
       <div className={`flex flex-col max-w-[75%] ${isSent ? 'items-end' : 'items-start'}`}>
         <div
-          className={`rounded-2xl px-4 py-2.5 ${
-            isSent
+          className={`rounded-2xl px-4 py-2.5 ${isSent
               ? 'bg-primary text-white rounded-tr-sm'
               : 'bg-white dark:bg-[#342d18] text-gray-900 dark:text-white rounded-tl-sm'
-          }`}
+            }`}
         >
           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
             {message.content}

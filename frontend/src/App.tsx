@@ -136,28 +136,7 @@ function App() {
                   <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
                   <Route path="/admin/settings" element={<SettingsPage />} />
                 </Route>
-                  <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
-                  <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
-                  <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
-                  <Route path="/admin/coin-economy" element={<CoinEconomyPage />} />
-                  <Route path="/admin/transactions" element={<TransactionsPage />} />
-                  <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
-                  <Route path="/admin/settings" element={<SettingsPage />} />
-                </Route>
-                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<UsersManagementPage />} />
-                  <Route path="/admin/users/:userId" element={<UserDetailPage />} />
-                  <Route path="/admin/female-approval" element={<FemaleApprovalPage />} />
-                  <Route path="/admin/female-approval/:userId" element={<FemaleApprovalDetailPage />} />
-                  <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
-                  <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
-                  <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
-                  <Route path="/admin/coin-economy" element={<CoinEconomyPage />} />
-                  <Route path="/admin/transactions" element={<TransactionsPage />} />
-                  <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
-                  <Route path="/admin/settings" element={<SettingsPage />} />
-                </Route>
+
 
                 {/* Catch-all route for 404 */}
                 <Route path="*" element={<NotFoundPage />} />

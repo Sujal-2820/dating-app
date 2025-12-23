@@ -95,7 +95,10 @@ export const ChatWindowPage = () => {
     // New message received
     const handleNewMessage = (data: { chatId: string; message: ApiMessage }) => {
       if (data.chatId === chatId) {
-        setMessages(prev => [...prev, data.message]);
+        setMessages(prev => {
+          if (prev.some(m => m._id === data.message._id)) return prev;
+          return [...prev, data.message];
+        });
         scrollToBottom();
       }
     };
