@@ -173,7 +173,7 @@ export const getUserById = async (req, res, next) => {
         const { userId } = req.params;
 
         const user = await User.findById(userId)
-            .select('profile isOnline lastSeen role approvalStatus');
+            .select('profile isOnline lastSeen role approvalStatus phoneNumber verificationDocuments createdAt isVerified isBlocked');
 
         if (!user) {
             return res.status(404).json({
@@ -227,13 +227,13 @@ export const getUserById = async (req, res, next) => {
                     isOnline: user.isOnline,
                     lastSeen: user.lastSeen,
                     // Include these fields for admin review
-                    phoneNumber: user.phoneNumber,
+                    phoneNumber: currentUser?.role === 'admin' ? user.phoneNumber : undefined,
                     role: user.role,
                     approvalStatus: user.approvalStatus,
-                    verificationDocuments: user.verificationDocuments || {},
-                    createdAt: user.createdAt,
-                    isVerified: user.isVerified,
-                    isBlocked: user.isBlocked
+                    verificationDocuments: currentUser?.role === 'admin' ? (user.verificationDocuments || {}) : undefined,
+                    createdAt: currentUser?.role === 'admin' ? user.createdAt : undefined,
+                    isVerified: currentUser?.role === 'admin' ? user.isVerified : undefined,
+                    isBlocked: currentUser?.role === 'admin' ? user.isBlocked : undefined
                 }
             }
         });
