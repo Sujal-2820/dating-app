@@ -9,6 +9,8 @@ import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal
 import { HiSentModal } from '../components/HiSentModal';
 import offlineQueueService from '../../../core/services/offlineQueue.service';
 
+import { useAuth } from '../../../core/context/AuthContext';
+import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 
 type FilterType = 'all' | 'online' | 'new' | 'popular';
@@ -19,6 +21,7 @@ export const NearbyFemalesPage = () => {
   const { navigationItems, handleNavigationClick } = useMaleNavigation();
   const { coinBalance, updateBalance } = useGlobalState();
 
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,15 +48,32 @@ export const NearbyFemalesPage = () => {
 
       const data = await userService.discoverFemales(apiFilter);
       // DEFENSIVE: Ensure profiles is always an array and handle missing properties
-      const sanitizedProfiles = (data.profiles || []).map((p: any) => ({
-        ...p,
-        id: p.id || p._id,
-        name: p.name || 'Anonymous',
-        avatar: p.avatar || p.profile?.photos?.[0]?.url || '',
-        bio: p.bio || p.profile?.bio || '',
-        location: p.location || p.profile?.location?.city || '',
-        age: p.age || p.profile?.age
-      }));
+      const sanitizedProfiles = (data.profiles || []).map((p: any) => {
+        const profileCoords = p.profile?.location?.coordinates || [p.longitude, p.latitude];
+        const profileLat = profileCoords[1];
+        const profileLng = profileCoords[0];
+
+        let distanceStr = p.distance;
+
+        const userCoord = { lat: user?.latitude || 0, lng: user?.longitude || 0 };
+        const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
+
+        if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
+          const dist = calculateDistance(userCoord, profileCoord);
+          distanceStr = formatDistance(dist);
+        }
+
+        return {
+          ...p,
+          id: p.id || p._id,
+          name: p.name || 'Anonymous',
+          avatar: p.avatar || p.profile?.photos?.[0]?.url || '',
+          bio: p.bio || p.profile?.bio || '',
+          location: p.location || p.profile?.location?.city || '',
+          age: p.age || p.profile?.age,
+          distance: distanceStr
+        };
+      });
       setProfiles(sanitizedProfiles);
     } catch (err: any) {
       console.error('Failed to fetch profiles:', err);
@@ -255,7 +275,8 @@ export const NearbyFemalesPage = () => {
               </div>
               <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-300">
                 {profile.location && <span>{profile.location}</span>}
-                {profile.age && <span>• {profile.age} yrs</span>}
+                {profile.age && <span>• {t('yearsOld', { count: profile.age })}</span>}
+                {profile.distance && <span>• {profile.distance}</span>}
               </div>
               {profile.bio && (
                 <p className="text-[11px] text-slate-500 dark:text-slate-300 mt-0.5 line-clamp-1">

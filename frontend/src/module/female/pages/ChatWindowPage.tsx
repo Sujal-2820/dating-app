@@ -311,6 +311,7 @@ export const ChatWindowPage = () => {
         userAvatar={chatInfo.otherUser.avatar || ''}
         isOnline={chatInfo.otherUser.isOnline}
         onMoreClick={handleMoreClick}
+        onUserInfoClick={handleViewProfile}
         coinBalance={availableBalance}
       />
 

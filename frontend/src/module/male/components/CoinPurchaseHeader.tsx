@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../types/material-symbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface CoinPurchaseHeaderProps {
   onHistoryClick?: () => void;
@@ -7,6 +8,7 @@ interface CoinPurchaseHeaderProps {
 
 export const CoinPurchaseHeader = ({ onHistoryClick }: CoinPurchaseHeaderProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-200 dark:border-white/5">
@@ -19,14 +21,14 @@ export const CoinPurchaseHeader = ({ onHistoryClick }: CoinPurchaseHeaderProps) 
           <MaterialSymbol name="arrow_back" size={24} />
         </button>
         <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center">
-          Get Coins
+          {t('getCoins')}
         </h2>
         <button
           onClick={onHistoryClick}
           className="flex items-center justify-end px-2 py-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors active:scale-95"
         >
           <MaterialSymbol name="history" size={20} className="text-primary mr-1" />
-          <p className="text-primary text-sm font-bold leading-normal">History</p>
+          <p className="text-primary text-sm font-bold leading-normal">{t('history')}</p>
         </button>
       </div>
     </div>

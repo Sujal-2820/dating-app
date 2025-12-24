@@ -26,9 +26,16 @@ const ChatItem = ({ chat, onClick }: { chat: Chat; onClick?: () => void }) => {
       </div>
       <div className="flex flex-1 flex-col justify-center text-left">
         <div className="flex justify-between items-center mb-0.5">
-          <p className="text-slate-900 dark:text-white text-base font-bold leading-normal">
-            {chat.userName}
-          </p>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <p className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate">
+              {chat.userName}
+            </p>
+            {chat.distance && (
+              <span className="text-[10px] text-primary font-medium shrink-0 flex items-center gap-0.5">
+                • {chat.distance}
+              </span>
+            )}
+          </div>
           <p className="text-slate-400 dark:text-[#cbbc90] text-xs font-normal">
             {chat.timestamp}
           </p>

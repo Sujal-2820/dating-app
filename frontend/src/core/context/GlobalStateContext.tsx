@@ -34,6 +34,7 @@ export interface InAppNotification {
     type: 'message' | 'system' | 'gift';
     chatId?: string;
     userId?: string;
+    avatar?: string;
 }
 
 const GlobalStateContext = createContext<GlobalState | undefined>(undefined);
@@ -172,14 +173,25 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
 
         // Handle chat messages
         const handleNewMessage = (data: any) => {
+            const chatId = data.chatId || data._id;
+            const senderId = data.senderId || data.sender?._id;
+            const senderName = data.senderName || data.sender?.name || 'New Message';
+            const senderAvatar = data.senderAvatar || data.sender?.avatar;
+            const content = data.content || data.message || 'You received a new message';
+
+            // Don't show notification if it's our own message
+            if (senderId === user?.id) return;
+
             // Only show notification if we are not on the chat page for this chatId
-            // Note: Window location check is a simple fallback since we don't have access to router state here easily
-            if (!window.location.pathname.includes(`/chat/${data.chatId || data._id}`)) {
+            const isInsideThisChat = window.location.pathname.includes(`/chat/${chatId}`);
+
+            if (!isInsideThisChat) {
                 addNotification({
-                    title: data.senderName || 'New Message',
-                    message: data.content || data.message || 'You received a new message',
+                    title: senderName,
+                    message: content,
                     type: 'message',
-                    chatId: data.chatId || data._id
+                    chatId: chatId,
+                    avatar: senderAvatar
                 });
             }
         };
@@ -191,6 +203,8 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
         socketService.on('user:update', handleUserUpdate);
         socketService.on('message', handleNewMessage);
         socketService.on('chat:message', handleNewMessage);
+        socketService.on('message:new', handleNewMessage);
+        socketService.on('message:notification', handleNewMessage);
 
         // Initial balance fetch
         refreshBalance();
@@ -202,6 +216,8 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
             socketService.off('user:update', handleUserUpdate);
             socketService.off('message', handleNewMessage);
             socketService.off('chat:message', handleNewMessage);
+            socketService.off('message:new', handleNewMessage);
+            socketService.off('message:notification', handleNewMessage);
         };
     }, [user?.id, updateBalance, refreshBalance, updateUser]);
 

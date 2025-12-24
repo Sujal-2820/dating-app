@@ -36,6 +36,7 @@ export const getDashboardStats = async () => {
             profit: 0
         },
         pendingWithdrawals: 0,
+        pendingFemaleApprovals: 0,
         totalTransactions: 0
     };
 
@@ -155,6 +156,9 @@ export const getDashboardStats = async () => {
 
     // Pending withdrawals
     stats.pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
+
+    // Pending female approvals
+    stats.pendingFemaleApprovals = await User.countDocuments({ role: 'female', approvalStatus: 'pending' });
 
     // Total transactions
     stats.totalTransactions = await Transaction.countDocuments();
@@ -471,4 +475,79 @@ export const updateAppSettings = async (newSettings, adminId) => {
     });
 
     return settings;
+};
+
+/**
+ * Toggle user block status
+ */
+export const toggleBlockUser = async (userId, adminId) => {
+    const user = await User.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    user.isBlocked = !user.isBlocked;
+    await user.save();
+
+    // Log the change
+    const admin = await User.findById(adminId);
+    await AuditLog.create({
+        adminId,
+        adminName: admin?.profile?.name || 'Admin',
+        action: user.isBlocked ? 'user_blocked' : 'user_unblocked',
+        actionType: 'user_management',
+        targetUserId: userId,
+        targetUserName: user.profile?.name || user.fullName,
+        details: { message: `User ${user.isBlocked ? 'blocked' : 'unblocked'} by admin` }
+    });
+
+    return user;
+};
+
+/**
+ * Toggle user verification status
+ */
+export const toggleVerifyUser = async (userId, adminId) => {
+    const user = await User.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    user.isVerified = !user.isVerified;
+    await user.save();
+
+    // Log the change
+    const admin = await User.findById(adminId);
+    await AuditLog.create({
+        adminId,
+        adminName: admin?.profile?.name || 'Admin',
+        action: user.isVerified ? 'user_verified' : 'user_unverified',
+        actionType: 'user_management',
+        targetUserId: userId,
+        targetUserName: user.profile?.name || user.fullName,
+        details: { message: `User ${user.isVerified ? 'verified' : 'unverified'} by admin` }
+    });
+
+    return user;
+};
+
+/**
+ * Delete user (soft delete recommended, but here we'll follow project pattern)
+ */
+export const deleteUser = async (userId, adminId) => {
+    const user = await User.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    // In a real app we might do soft delete, but here we delete
+    await User.findByIdAndDelete(userId);
+
+    // Log the change
+    const admin = await User.findById(adminId);
+    await AuditLog.create({
+        adminId,
+        adminName: admin?.profile?.name || 'Admin',
+        action: 'user_deleted',
+        actionType: 'user_management',
+        targetUserId: userId,
+        targetUserName: user.profile?.name || user.fullName,
+        details: { message: 'User deleted by admin' }
+    });
+
+    return true;
 };

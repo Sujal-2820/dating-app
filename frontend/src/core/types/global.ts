@@ -18,6 +18,20 @@ export interface UserProfile {
   rejectionReason?: string;
   coinBalance?: number;
   memberTier?: 'basic' | 'silver' | 'gold' | 'platinum';
+  latitude?: number;
+  longitude?: number;
+  badges?: Badge[];
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  category: 'vip' | 'achievement' | 'special' | 'limited';
+  unlockedAt?: string;
+  isUnlocked: boolean;
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 export interface WalletState {

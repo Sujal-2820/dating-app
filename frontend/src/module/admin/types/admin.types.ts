@@ -5,6 +5,7 @@ export interface AdminDashboardData {
     activeUsers: { last24h: number; last7d: number; last30d: number };
     revenue: { deposits: number; payouts: number; profit: number };
     pendingWithdrawals: number;
+    pendingFemaleApprovals: number;
     totalTransactions: number;
   };
   charts: {
@@ -29,7 +30,7 @@ export interface AdminUser {
   id: string;
   phoneNumber: string;
   name: string;
-  role: 'male' | 'female';
+  role: 'male' | 'female' | 'admin';
   isBlocked: boolean;
   isVerified: boolean;
   createdAt: string;
@@ -38,11 +39,19 @@ export interface AdminUser {
 }
 
 export interface UserProfile {
-  age: number;
-  city: string;
-  bio: string;
-  photos: string[];
-  location?: { lat: number; lng: number };
+  age?: number;
+  city?: string;
+  bio?: string;
+  photos?: (string | { url: string })[];
+  location?: {
+    city?: string;
+    state?: string;
+    country?: string;
+    coordinates?: {
+      type: 'Point';
+      coordinates: [number, number];
+    };
+  };
 }
 
 // Female Approval
@@ -51,7 +60,7 @@ export interface FemaleApproval {
   user: AdminUser;
   profile: UserProfile;
   approvalStatus: 'pending' | 'approved' | 'rejected' | 'resubmit_requested';
-  verificationDocuments: {
+  verificationDocuments?: {
     aadhaarCard: {
       url: string;
       verified: boolean;
@@ -97,6 +106,7 @@ export interface WithdrawalRequest {
   id: string;
   userId: string;
   userName: string;
+  userAvatar?: string;
   coinsRequested: number;
   payoutMethod: 'UPI' | 'bank';
   payoutDetails: {

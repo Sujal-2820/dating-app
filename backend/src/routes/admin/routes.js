@@ -24,6 +24,9 @@ router.patch('/females/:id/request-resubmit', adminController.requestResubmitFem
 
 // User Management
 router.get('/users', adminController.listUsers);
+router.patch('/users/:id/toggle-block', adminController.toggleBlockUser);
+router.patch('/users/:id/toggle-verify', adminController.toggleVerifyUser);
+router.delete('/users/:id', adminController.deleteUser);
 
 // Transaction Management
 router.get('/transactions', adminController.listTransactions);

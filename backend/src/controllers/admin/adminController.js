@@ -276,3 +276,60 @@ export const updateGiftCost = async (req, res, next) => {
         next(error);
     }
 };
+
+/**
+ * Toggle user block status
+ */
+export const toggleBlockUser = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const user = await adminService.toggleBlockUser(id, req.user._id);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                user,
+                message: `User ${user.isBlocked ? 'blocked' : 'unblocked'} successfully`
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Toggle user verification status
+ */
+export const toggleVerifyUser = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const user = await adminService.toggleVerifyUser(id, req.user._id);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                user,
+                message: `User verification ${user.isVerified ? 'enabled' : 'disabled'} successfully`
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Delete user
+ */
+export const deleteUser = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await adminService.deleteUser(id, req.user._id);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'User deleted successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+};

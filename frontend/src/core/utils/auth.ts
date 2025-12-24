@@ -138,8 +138,8 @@ export const mapUserToProfile = (user: any): UserProfile => {
     photos: user.profile?.photos?.map((p: any) => p.url) || [],
     age: user.profile?.age,
     bio: user.profile?.bio,
-    city: user.profile?.location?.city,
-    location: user.profile?.location ? `${user.profile.location.city || ''}, ${user.profile.location.country || ''}`.replace(/^, |, $/g, '') : undefined,
+    city: user.profile?.location?.city || user.city,
+    location: user.profile?.location ? `${user.profile.location.city || ''}, ${user.profile.location.country || ''}`.replace(/^, |, $/g, '') : (user.location || user.city),
     interests: user.profile?.interests || [],
     occupation: user.profile?.occupation,
     isVerified: user.isVerified,
@@ -147,6 +147,9 @@ export const mapUserToProfile = (user: any): UserProfile => {
     rejectionReason: user.rejectionReason,
     coinBalance: user.coinBalance,
     memberTier: user.memberTier,
+    latitude: user.profile?.location?.coordinates?.[1] || user.latitude,
+    longitude: user.profile?.location?.coordinates?.[0] || user.longitude,
+    badges: user.badges || user.profile?.badges || [],
   };
 };
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminTopNavbar } from '../components/AdminTopNavbar';
@@ -6,46 +5,60 @@ import { AdminSidebar } from '../components/AdminSidebar';
 import { useAdminNavigation } from '../hooks/useAdminNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { FemaleApproval } from '../types/admin.types';
-
-// Mock data - replace with actual API call
-const mockApproval: FemaleApproval = {
-  userId: '2',
-  user: {
-    id: '2',
-    email: 'sarah.smith@example.com',
-    name: 'Sarah Smith',
-    role: 'female',
-    isBlocked: false,
-    isVerified: false,
-    createdAt: '2024-01-05T14:30:00Z',
-    lastLoginAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  profile: {
-    age: 25,
-    city: 'Delhi',
-    bio: 'Fitness enthusiast and food lover. Always up for new adventures!',
-    photos: [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuC81hkr7IkYx1ryaWF6XEKAw50xyRvJBGMogrF-zD5ChG66QAopPNWZvczWXWXasmarotX6xfLiXqIGT-HGa4N4mpnfl6tHPN16fBm5L0ebBFFR6YnfhOhNpt_PXB-rNdw4iozv00ERuqlCKno-B1P2UZ6g-dU5YY4Or_m3Xdgk4_MrxVK9o6Uz70Vr_fXQdMhSrjjCl7s_yQE_R1O9FNwroQqdfSFv6kiO76qVxmnHDhLrYwRWtfdSdegsNjAzgAdgkUZgUomw2j8',
-    ],
-  },
-  approvalStatus: 'pending',
-  submittedAt: '2024-01-05T14:30:00Z',
-};
+import * as adminService from '../../../core/services/admin.service';
+import apiClient from '../../../core/api/client';
+import { useAdminStats } from '../context/AdminStatsContext';
 
 export const RejectApprovalPage = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
+  const { refreshStats } = useAdminStats();
   const [approval, setApproval] = useState<FemaleApproval | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (userId) {
-      // TODO: API call to fetch approval details
-      setApproval(mockApproval);
-    }
+    const fetchUser = async () => {
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const response = await apiClient.get(`/users/${userId}`);
+        const user = response.data.data.user;
+
+        setApproval({
+          userId: user._id || user.id,
+          user: {
+            id: user._id || user.id,
+            name: user.profile?.name || 'Unknown',
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+            isBlocked: user.isBlocked,
+            isVerified: user.isVerified,
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastSeen
+          },
+          profile: {
+            age: user.profile?.age,
+            city: user.profile?.location?.city || '',
+            bio: user.profile?.bio || '',
+            photos: user.profile?.photos?.map((p: any) => typeof p === 'string' ? p : p.url) || []
+          },
+          approvalStatus: user.approvalStatus,
+          submittedAt: user.createdAt
+        });
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUser();
   }, [userId]);
 
   const handleSubmit = async () => {
@@ -55,12 +68,51 @@ export const RejectApprovalPage = () => {
     }
 
     setIsSubmitting(true);
-    // TODO: API call to reject approval
-    console.log('Rejecting approval:', { userId, reason: rejectionReason });
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-    setIsSubmitting(false);
-    navigate('/admin/female-approval');
+    try {
+      await adminService.rejectFemale(userId!, rejectionReason);
+      refreshStats();
+      navigate('/admin/female-approval');
+    } catch (error) {
+      console.error('Rejection failed:', error);
+      alert('Failed to reject application');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="relative flex h-full min-h-screen w-full flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0a0a0a] dark:via-[#1a1a1a] dark:to-[#0a0a0a] overflow-x-hidden">
+        <AdminTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <AdminSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          items={navigationItems}
+          onItemClick={handleNavigationClick}
+        />
+        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="relative flex h-full min-h-screen w-full flex-col bg-gray-50 dark:bg-[#0a0a0a] overflow-x-hidden">
+        <AdminTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <AdminSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          items={navigationItems}
+          onItemClick={handleNavigationClick}
+        />
+        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (!approval) {
     return (
@@ -127,7 +179,11 @@ export const RejectApprovalPage = () => {
               <div className="flex items-center gap-4">
                 <div className="size-20 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/30 overflow-hidden shadow-lg">
                   {approval.user && approval.user.profile?.photos && approval.user.profile.photos.length > 0 ? (
-                    <img src={approval.user.profile.photos[0]} alt={approval.user.name} className="w-full h-full object-cover" />
+                    <img
+                      src={typeof approval.user.profile.photos[0] === 'string' ? approval.user.profile.photos[0] : (approval.user.profile.photos[0] as any).url}
+                      alt={approval.user.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
                       {approval.user.name.charAt(0).toUpperCase()}
@@ -172,7 +228,11 @@ export const RejectApprovalPage = () => {
                         key={index}
                         className="aspect-square rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-800 shadow-md hover:shadow-lg transition-shadow"
                       >
-                        <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+                        <img
+                          src={typeof photo === 'string' ? photo : (photo as any).url}
+                          alt={`Photo ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                     ))}
                   </div>

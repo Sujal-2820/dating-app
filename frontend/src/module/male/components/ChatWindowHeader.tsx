@@ -19,6 +19,7 @@ interface ChatWindowHeaderProps {
   onMoreClick?: () => void;
   onBackClick?: () => void;
   onVideoCall?: () => void;
+  onUserInfoClick?: () => void;
   showVideoCall?: boolean;
 }
 
@@ -33,6 +34,7 @@ export const ChatWindowHeader = ({
   onMoreClick,
   onBackClick,
   onVideoCall,
+  onUserInfoClick,
   showVideoCall = false,
 }: ChatWindowHeaderProps) => {
   const navigate = useNavigate();
@@ -72,7 +74,10 @@ export const ChatWindowHeader = ({
           </button>
 
           {/* User Info */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <button
+            onClick={onUserInfoClick}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left active:opacity-70 transition-opacity"
+          >
             <div className="relative shrink-0">
               {isVIP && (
                 <div className="absolute -inset-[2px] rounded-full bg-gradient-to-tr from-gold to-yellow-600 opacity-80" />
@@ -111,7 +116,7 @@ export const ChatWindowHeader = ({
                 )}
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
 

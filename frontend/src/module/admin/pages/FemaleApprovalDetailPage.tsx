@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminTopNavbar } from '../components/AdminTopNavbar';
@@ -6,12 +5,15 @@ import { AdminSidebar } from '../components/AdminSidebar';
 import { useAdminNavigation } from '../hooks/useAdminNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { FemaleApproval } from '../types/admin.types';
-import * as adminService from '../services/admin.service';
+import * as adminService from '../../../core/services/admin.service';
+import apiClient from '../../../core/api/client';
+import { useAdminStats } from '../context/AdminStatsContext';
 
 export const FemaleApprovalDetailPage = () => {
     const { userId } = useParams<{ userId: string }>();
     const navigate = useNavigate();
     const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
+    const { refreshStats } = useAdminStats();
     const [approval, setApproval] = useState<FemaleApproval | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -29,23 +31,11 @@ export const FemaleApprovalDetailPage = () => {
 
             setIsLoading(true);
             try {
-                const token = localStorage.getItem('matchmint_auth_token');
-
                 console.log('🔍 [FemaleApproval] Fetching user details for ID:', userId);
 
-                // Fetch user details from backend
-                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/users/${userId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    console.error('❌ [FemaleApproval] API Response failed:', response.status, response.statusText);
-                    throw new Error('Failed to fetch user details');
-                }
-
-                const data = await response.json();
+                // Fetch user details from backend using apiClient
+                const response = await apiClient.get(`/users/${userId}`);
+                const data = response.data;
                 console.log('📦 [FemaleApproval] Raw API Response:', data);
 
                 const user = data.data.user;
@@ -57,7 +47,7 @@ export const FemaleApprovalDetailPage = () => {
                     user: {
                         id: user.id || user._id,
                         phoneNumber: user.phoneNumber,
-                        name: user.name,
+                        name: user.profile.name,
                         role: user.role,
                         isBlocked: user.isBlocked || false,
                         isVerified: user.isVerified || false,
@@ -65,11 +55,11 @@ export const FemaleApprovalDetailPage = () => {
                         lastLoginAt: user.lastSeen
                     },
                     profile: {
-                        age: user.age,
-                        city: user.city || '',
-                        bio: user.bio || '',
+                        age: user.profile.age,
+                        city: user.profile.location?.city || '',
+                        bio: user.profile.bio || '',
                         // Extract URL from photo objects: [{url: '...'}, ...] => ['url1', 'url2', ...]
-                        photos: (user.photos || []).map((photo: any) => typeof photo === 'string' ? photo : photo.url)
+                        photos: (user.profile.photos || []).map((photo: any) => typeof photo === 'string' ? photo : photo.url)
                     },
                     verificationDocuments: user.verificationDocuments || {},
                     approvalStatus: user.approvalStatus || 'pending',
@@ -98,13 +88,11 @@ export const FemaleApprovalDetailPage = () => {
         setIsProcessing(true);
         try {
             await adminService.approveFemale(approval.userId);
-            // alert('User approved successfully');
+            refreshStats();
             navigate('/admin/female-approval');
         } catch (error) {
             console.error(error);
-            alert('Approval failed (mock)'); // Remove in prod
-            // For mock: just navigate back
-            navigate('/admin/female-approval');
+            alert('Approval failed');
         } finally {
             setIsProcessing(false);
         }

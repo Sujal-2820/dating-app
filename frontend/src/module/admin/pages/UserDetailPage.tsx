@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminTopNavbar } from '../components/AdminTopNavbar';
@@ -6,62 +5,130 @@ import { AdminSidebar } from '../components/AdminSidebar';
 import { useAdminNavigation } from '../hooks/useAdminNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { AdminUser } from '../types/admin.types';
-
-// Mock data - replace with actual API call
-const mockUsers: Record<string, AdminUser> = {
-  '1': {
-    id: '1',
-    email: 'john.doe@example.com',
-    name: 'John Doe',
-    role: 'male',
-    isBlocked: false,
-    isVerified: true,
-    createdAt: '2024-01-01T10:00:00Z',
-    lastLoginAt: new Date(Date.now() - 3600000).toISOString(),
-    profile: {
-      age: 28,
-      city: 'Mumbai',
-      bio: 'Love traveling and photography. Always up for new adventures!',
-      photos: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuD50-ii2k9PzO4qeyW-OGHjX-2FkC-nA5ibp8nilOmxqIs-w6h7s0urlDqev0gVBZWdyFA_3jZ4auAmlsmmGZJtFVeTHiGW7cqwg60iSjQAedJk4JqEbDkQMBYmK31cVtDFsUHahf8u_-Do3G7K2GnansIQaBcgPSJLc7jSTEJr1GNKy9Kpkbb0A-qm4L0Ul1Bd5sSiBcUw8P2BA8K3VMWLs47qnJbJahDqGtp9UA5PPVTWdJ5atRHa8i9VBLDRrbIoeoOw1THR6BI',
-      ],
-    },
-  },
-  '2': {
-    id: '2',
-    email: 'sarah.smith@example.com',
-    name: 'Sarah Smith',
-    role: 'female',
-    isBlocked: false,
-    isVerified: true,
-    createdAt: '2024-01-05T14:30:00Z',
-    lastLoginAt: new Date(Date.now() - 7200000).toISOString(),
-    profile: {
-      age: 25,
-      city: 'Delhi',
-      bio: 'Fitness enthusiast and food lover. Always up for new adventures!',
-      photos: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuC81hkr7IkYx1ryaWF6XEKAw50xyRvJBGMogrF-zD5ChG66QAopPNWZvczWXWXasmarotX6xfLiXqIGT-HGa4N4mpnfl6tHPN16fBm5L0ebBFFR6YnfhOhNpt_PXB-rNdw4iozv00ERuqlCKno-B1P2UZ6g-dU5YY4Or_m3Xdgk4_MrxVK9o6Uz70Vr_fXQdMhSrjjCl7s_yQE_R1O9FNwroQqdfSFv6kiO76qVxmnHDhLrYwRWtfdSdegsNjAzgAdgkUZgUomw2j8',
-      ],
-    },
-  },
-};
+import adminService from '../../../core/services/admin.service';
+import apiClient from '../../../core/api/client';
 
 export const UserDetailPage = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showConfirmBlock, setShowConfirmBlock] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (userId) {
-      // TODO: API call to fetch user details
-      setUser(mockUsers[userId] || null);
-    }
+    const fetchUser = async () => {
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const response = await apiClient.get(`/users/${userId}`);
+        const userData = response.data.data.user;
+
+        setUser({
+          id: userData._id || userData.id,
+          phoneNumber: userData.phoneNumber,
+          name: userData.profile?.name || userData.fullName || 'Unknown',
+          role: userData.role,
+          isBlocked: userData.isBlocked,
+          isVerified: userData.isVerified,
+          createdAt: userData.createdAt,
+          lastLoginAt: userData.lastSeen,
+          profile: userData.profile
+        });
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUser();
   }, [userId]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const handleBlockToggle = async () => {
+    if (!user) return;
+    if (showConfirmBlock) {
+      setIsProcessing(true);
+      try {
+        await adminService.toggleBlockUser(user.id);
+        setUser({ ...user, isBlocked: !user.isBlocked });
+        setShowConfirmBlock(false);
+      } catch (error) {
+        console.error('Failed to toggle block status:', error);
+        alert('Failed to update block status');
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      setShowConfirmBlock(true);
+    }
+  };
+
+  const handleVerifyToggle = async () => {
+    if (!user) return;
+    setIsProcessing(true);
+    try {
+      await adminService.toggleVerifyUser(user.id);
+      setUser({ ...user, isVerified: !user.isVerified });
+    } catch (error) {
+      console.error('Failed to toggle verification:', error);
+      alert('Failed to update verification status');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!user) return;
+    if (showConfirmDelete) {
+      setIsProcessing(true);
+      try {
+        await adminService.deleteUser(user.id);
+        navigate('/admin/users');
+      } catch (error) {
+        console.error('Failed to delete user:', error);
+        alert('Failed to delete user');
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      setShowConfirmDelete(true);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="relative flex h-full min-h-screen w-full flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0a0a0a] dark:via-[#1a1a1a] dark:to-[#0a0a0a] overflow-x-hidden">
+        <AdminTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <AdminSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          items={navigationItems}
+          onItemClick={handleNavigationClick}
+        />
+        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -89,44 +156,6 @@ export const UserDetailPage = () => {
       </div>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const handleBlockToggle = () => {
-    if (showConfirmBlock) {
-      // TODO: API call to block/unblock user
-      setUser({ ...user, isBlocked: !user.isBlocked });
-      setShowConfirmBlock(false);
-      console.log(`User ${user.id} ${!user.isBlocked ? 'blocked' : 'unblocked'}`);
-    } else {
-      setShowConfirmBlock(true);
-    }
-  };
-
-  const handleVerifyToggle = () => {
-    // TODO: API call to verify user
-    setUser({ ...user, isVerified: !user.isVerified });
-    console.log(`User ${user.id} ${!user.isVerified ? 'verified' : 'unverified'}`);
-  };
-
-  const handleDelete = () => {
-    if (showConfirmDelete) {
-      // TODO: API call to delete user
-      console.log(`User ${user.id} deleted`);
-      navigate('/admin/users');
-    } else {
-      setShowConfirmDelete(true);
-    }
-  };
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0a0a0a] dark:via-[#1a1a1a] dark:to-[#0a0a0a] overflow-x-hidden">
@@ -156,8 +185,16 @@ export const UserDetailPage = () => {
           <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden mb-6">
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
               <div className="flex items-center gap-6">
-                <div className="size-24 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/30 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
-                  {user.name.charAt(0).toUpperCase()}
+                <div className="size-24 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/30 flex items-center justify-center text-white text-4xl font-bold shadow-lg overflow-hidden">
+                  {user.profile?.photos?.[0] ? (
+                    <img
+                      src={typeof user.profile.photos[0] === 'string' ? user.profile.photos[0] : user.profile.photos[0].url}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    user.name.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -166,12 +203,12 @@ export const UserDetailPage = () => {
                       <MaterialSymbol name="verified" className="text-white" size={28} filled />
                     )}
                   </div>
-                  <p className="text-blue-100 text-lg">{user.email}</p>
+                  <p className="text-blue-100 text-lg">{user.phoneNumber}</p>
                   <div className="flex flex-wrap gap-2 mt-3">
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${user.role === 'male'
-                          ? 'bg-blue-500/30 text-white backdrop-blur-sm'
-                          : 'bg-pink-500/30 text-white backdrop-blur-sm'
+                        ? 'bg-blue-500/30 text-white backdrop-blur-sm'
+                        : 'bg-pink-500/30 text-white backdrop-blur-sm'
                         }`}
                     >
                       {user.role.charAt(0).toUpperCase() + user.role.slice(1)} User
@@ -203,11 +240,11 @@ export const UserDetailPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
                       <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Age</p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-white">{user.profile.age} years</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white">{user.profile.age || 'N/A'} years</p>
                     </div>
                     <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
                       <p className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-1">City</p>
-                      <p className="text-xl font-bold text-gray-900 dark:text-white">{user.profile.city}</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white">{user.profile.location?.city || user.profile.city || 'N/A'}</p>
                     </div>
                     {user.profile.bio && (
                       <div className="col-span-1 md:col-span-2 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
@@ -225,7 +262,7 @@ export const UserDetailPage = () => {
                               className="aspect-square rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-800 shadow-md hover:shadow-lg transition-shadow"
                             >
                               <img
-                                src={photo}
+                                src={typeof photo === 'string' ? photo : (photo as any).url}
                                 alt={`Photo ${index + 1}`}
                                 className="w-full h-full object-cover"
                               />
@@ -250,8 +287,8 @@ export const UserDetailPage = () => {
                     <p className="text-sm font-mono text-gray-900 dark:text-white break-all">{user.id}</p>
                   </div>
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Email</p>
-                    <p className="text-sm text-gray-900 dark:text-white break-all">{user.email}</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Phone Number</p>
+                    <p className="text-sm text-gray-900 dark:text-white break-all">{user.phoneNumber}</p>
                   </div>
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-800">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Registered</p>
@@ -270,9 +307,10 @@ export const UserDetailPage = () => {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleBlockToggle}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg ${user.isBlocked
-                      ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800'
-                      : 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800'
+                  disabled={isProcessing}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 ${user.isBlocked
+                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800'
+                    : 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800'
                     }`}
                 >
                   <MaterialSymbol name={user.isBlocked ? 'lock_open' : 'block'} size={20} />
@@ -280,9 +318,10 @@ export const UserDetailPage = () => {
                 </button>
                 <button
                   onClick={handleVerifyToggle}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg ${user.isVerified
-                      ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
+                  disabled={isProcessing}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 ${user.isVerified
+                    ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
                     }`}
                 >
                   <MaterialSymbol name={user.isVerified ? 'verified' : 'verified_user'} size={20} />
@@ -290,7 +329,8 @@ export const UserDetailPage = () => {
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition-all shadow-md hover:shadow-lg"
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   <MaterialSymbol name="delete" size={20} />
                   Delete User
@@ -358,8 +398,8 @@ export const UserDetailPage = () => {
                   <button
                     onClick={handleBlockToggle}
                     className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${user.isBlocked
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-red-600 text-white hover:bg-red-700'
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-red-600 text-white hover:bg-red-700'
                       }`}
                   >
                     {user.isBlocked ? 'Unblock' : 'Block'} User
@@ -373,4 +413,3 @@ export const UserDetailPage = () => {
     </div>
   );
 };
-

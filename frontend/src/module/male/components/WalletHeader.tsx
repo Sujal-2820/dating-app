@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../types/material-symbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface WalletHeaderProps {
   onHelpClick?: () => void;
@@ -7,6 +8,7 @@ interface WalletHeaderProps {
 
 export const WalletHeader = ({ onHelpClick }: WalletHeaderProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="sticky top-0 z-50 flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between">
@@ -18,7 +20,7 @@ export const WalletHeader = ({ onHelpClick }: WalletHeaderProps) => {
         <MaterialSymbol name="arrow_back_ios" size={24} />
       </button>
       <h2 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">
-        My Wallet
+        {t('myWallet')}
       </h2>
       <div className="flex w-12 items-center justify-end">
         <button

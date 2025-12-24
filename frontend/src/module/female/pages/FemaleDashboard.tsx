@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { ProfileHeader } from '../components/ProfileHeader';
@@ -12,6 +12,7 @@ import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
 import { LocationPromptModal } from '../../../shared/components/LocationPromptModal';
 import userService from '../../../core/services/user.service';
+import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import type { FemaleDashboardData } from '../types/female.types';
 
 
@@ -40,6 +41,7 @@ export const FemaleDashboard = () => {
     try {
       setIsLoading(true);
       const data = await userService.getFemaleDashboardData();
+
       setDashboardData(data);
     } catch (error) {
       console.error('Failed to fetch female dashboard:', error);
@@ -59,6 +61,26 @@ export const FemaleDashboard = () => {
       setShowLocationPrompt(true);
     }
   }, [user, navigate]);
+
+  const activeChatsForDisplay = useMemo(() => {
+    if (!dashboardData?.activeChats) return [];
+    return dashboardData.activeChats.map((chat: any) => {
+      const otherUser = chat.otherUser || {};
+      const profileLat = otherUser.profile?.location?.coordinates?.[1] || otherUser.latitude;
+      const profileLng = otherUser.profile?.location?.coordinates?.[0] || otherUser.longitude;
+
+      let distanceStr = undefined;
+      const userCoord = { lat: user?.latitude || 0, lng: user?.longitude || 0 };
+      const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
+
+      if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
+        const dist = calculateDistance(userCoord, profileCoord);
+        distanceStr = formatDistance(dist);
+      }
+
+      return { ...chat, distance: distanceStr };
+    });
+  }, [dashboardData?.activeChats, user?.latitude, user?.longitude]);
 
   const handleNotificationClick = () => {
     navigate('/female/notifications');
@@ -100,10 +122,15 @@ export const FemaleDashboard = () => {
     }
   };
 
-  const handleLocationSave = (location: string) => {
+  const handleLocationSave = (location: string, coordinates?: { lat: number, lng: number }) => {
     // Update user context
     if (updateUser) {
-      updateUser({ location });
+      updateUser({
+        location,
+        city: location,
+        latitude: coordinates?.lat,
+        longitude: coordinates?.lng
+      });
     }
     setShowLocationPrompt(false);
   };
@@ -166,7 +193,7 @@ export const FemaleDashboard = () => {
 
       {/* Active Chats List */}
       <ActiveChatsList
-        chats={dashboardData?.activeChats || []}
+        chats={activeChatsForDisplay}
         onChatClick={handleChatClick}
         onSeeAllClick={handleSeeAllChatsClick}
       />

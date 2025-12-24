@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { DiscoverNearbyCard } from '../components/DiscoverNearbyCard';
@@ -11,6 +11,9 @@ import { LocationPromptModal } from '../../../shared/components/LocationPromptMo
 import userService from '../../../core/services/user.service';
 import chatService from '../../../core/services/chat.service';
 import { useTranslation } from '../../../core/hooks/useTranslation';
+import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
+import { BadgeDisplay } from '../../../shared/components/BadgeDisplay';
+import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 
 interface MaleDashboardData {
   nearbyUsers: Array<{
@@ -27,14 +30,17 @@ interface MaleDashboardData {
     timestamp: string;
     isOnline: boolean;
     hasUnread: boolean;
+    distance?: string;
   }>;
+  rawChats: any[];
 }
 
 export const MaleDashboard = () => {
   const { t } = useTranslation();
   const [dashboardData, setDashboardData] = useState<MaleDashboardData>({
     nearbyUsers: [],
-    activeChats: []
+    activeChats: [],
+    rawChats: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
@@ -61,16 +67,8 @@ export const MaleDashboard = () => {
           name: p.name || 'User',
           avatar: p.avatar || ''
         })) || [],
-        activeChats: chatsResponse?.map((c: any) => ({
-          id: c._id,
-          userId: c.otherUser?._id,
-          userName: c.otherUser?.name || 'User',
-          userAvatar: c.otherUser?.avatar || '',
-          lastMessage: c.lastMessage?.content || 'Say hi!',
-          timestamp: c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-          isOnline: c.otherUser?.isOnline || false,
-          hasUnread: c.unreadCount > 0
-        })) || []
+        rawChats: chatsResponse || [],
+        activeChats: [] // Will be computed
       });
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -85,6 +83,53 @@ export const MaleDashboard = () => {
     }
   }, [user]);
 
+  const formatTimestamp = (date: string | Date): string => {
+    if (!date) return '';
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+    } else if (diffDays === 1) {
+      return t('yesterday');
+    } else if (diffDays < 7) {
+      return d.toLocaleDateString([], { weekday: 'short' });
+    } else {
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const activeChatsForDisplay = useMemo(() => {
+    return dashboardData.rawChats.map((chat: any) => {
+      const otherUser = chat.otherUser || {};
+      const profileLat = otherUser.profile?.location?.coordinates?.[1] || otherUser.latitude;
+      const profileLng = otherUser.profile?.location?.coordinates?.[0] || otherUser.longitude;
+
+      let distanceStr = undefined;
+      const userCoord = { lat: user?.latitude || 0, lng: user?.longitude || 0 };
+      const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
+
+      if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
+        const dist = calculateDistance(userCoord, profileCoord);
+        distanceStr = formatDistance(dist);
+      }
+
+      return {
+        id: chat._id,
+        userId: otherUser._id,
+        userName: otherUser.name || 'User',
+        userAvatar: otherUser.avatar || '',
+        lastMessage: chat.lastMessage?.content || 'Say hi!',
+        timestamp: formatTimestamp(chat.lastMessageAt),
+        isOnline: !!otherUser.isOnline,
+        hasUnread: (chat.unreadCount || 0) > 0,
+        distance: distanceStr
+      };
+    });
+  }, [dashboardData.rawChats, user?.latitude, user?.longitude, t]);
+
   const handleChatClick = (chatId: string) => {
     navigate(`/male/chat/${chatId}`);
   };
@@ -97,9 +142,14 @@ export const MaleDashboard = () => {
     navigate('/male/discover');
   };
 
-  const handleLocationSave = (location: string) => {
+  const handleLocationSave = (location: string, coordinates?: { lat: number, lng: number }) => {
     if (updateUser) {
-      updateUser({ location });
+      updateUser({
+        location,
+        city: location,
+        latitude: coordinates?.lat,
+        longitude: coordinates?.lng
+      });
     }
     setShowLocationPrompt(false);
   };
@@ -139,8 +189,52 @@ export const MaleDashboard = () => {
         onExploreClick={handleExploreClick}
       />
 
+      {/* Achievements Section */}
+      <div className="px-4 mb-2">
+        <div className="bg-gradient-to-br from-white via-pink-50/50 to-rose-50/30 dark:from-[#2d1a24] dark:via-[#3d2530] dark:to-[#2d1a24] rounded-2xl p-5 shadow-lg border border-pink-200/50 dark:border-pink-900/30 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/20 dark:bg-pink-900/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-md">
+                  <MaterialSymbol name="workspace_premium" className="text-white" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('badges')}</h3>
+              </div>
+              <button
+                onClick={() => navigate('/male/badges')}
+                className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors"
+              >
+                {t('viewAll')}
+              </button>
+            </div>
+            {user?.badges && user.badges.length > 0 ? (
+              <BadgeDisplay
+                badges={user.badges}
+                maxDisplay={5}
+                showUnlockedOnly={true}
+                compact={true}
+                onBadgeClick={() => navigate('/male/badges')}
+              />
+            ) : (
+              <div className="text-center py-4 px-2 bg-pink-100/30 dark:bg-pink-900/10 rounded-xl border border-dashed border-pink-200 dark:border-pink-800">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t('noBadgesYet')}
+                </p>
+                <button
+                  onClick={() => navigate('/male/badges')}
+                  className="mt-2 text-xs font-bold text-primary"
+                >
+                  {t('exploreAchievements')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <ActiveChatsList
-        chats={dashboardData.activeChats}
+        chats={activeChatsForDisplay}
         onChatClick={handleChatClick}
         onSeeAllClick={handleSeeAllChatsClick}
       />

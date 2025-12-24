@@ -6,7 +6,7 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface LocationPromptModalProps {
-    onSave: (location: string) => void;
+    onSave: (location: string, coordinates?: { lat: number; lng: number }) => void;
     onClose?: () => void;
 }
 
@@ -95,12 +95,23 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
 
         try {
             const token = localStorage.getItem('matchmint_auth_token');
-            const payload: any = { location: location.trim() };
+            const payload: any = {
+                location: location.trim(),
+                city: location.trim()
+            };
 
             // Add coordinates if available
             if (coordinates) {
                 payload.latitude = coordinates.lat;
                 payload.longitude = coordinates.lng;
+
+                // Also nest in profile for backend consistency if it expects it
+                payload.profile = {
+                    location: {
+                        city: location.trim(),
+                        coordinates: [coordinates.lng, coordinates.lat]
+                    }
+                };
             }
 
             await axios.patch(
@@ -109,7 +120,7 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            onSave(location.trim());
+            onSave(location.trim(), coordinates || undefined);
             if (onClose) onClose();
         } catch (err) {
             console.error('Failed to save location:', err);

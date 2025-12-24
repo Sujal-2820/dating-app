@@ -1,4 +1,5 @@
 import { MaterialSymbol } from '../types/material-symbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface StatsGridProps {
   stats: {
@@ -32,30 +33,32 @@ const StatCard = ({ icon, value, label, color, bgGradient }: {
 };
 
 export const StatsGrid = ({ stats }: StatsGridProps) => {
+  const { t } = useTranslation();
+
   return (
     <div className="flex w-full flex-col px-4 mb-4">
       <h2 className="mb-3 text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-        <span className="text-pink-500">💖</span> Quick Stats
+        <span className="text-pink-500">💖</span> {t('quickStats')}
       </h2>
       <div className="grid grid-cols-3 gap-3">
         <StatCard
           icon="favorite"
           value={stats.matches}
-          label="Matches"
+          label={t('matches')}
           color="bg-gradient-to-br from-pink-500 to-rose-500 text-white"
           bgGradient="bg-gradient-to-br from-white via-pink-50/50 to-rose-50/30 dark:from-[#2d1a24] dark:via-[#3d2530] dark:to-[#2d1a24] border border-pink-200/50 dark:border-pink-900/30"
         />
         <StatCard
           icon="send"
           value={stats.sent}
-          label="Sent"
+          label={t('sent')}
           color="bg-gradient-to-br from-pink-400 to-rose-400 text-white"
           bgGradient="bg-gradient-to-br from-white via-pink-50/50 to-rose-50/30 dark:from-[#2d1a24] dark:via-[#3d2530] dark:to-[#2d1a24] border border-pink-200/50 dark:border-pink-900/30"
         />
         <StatCard
           icon="visibility"
           value={stats.views}
-          label="Views"
+          label={t('views')}
           color="bg-gradient-to-br from-rose-400 to-pink-400 text-white"
           bgGradient="bg-gradient-to-br from-white via-pink-50/50 to-rose-50/30 dark:from-[#2d1a24] dark:via-[#3d2530] dark:to-[#2d1a24] border border-pink-200/50 dark:border-pink-900/30"
         />

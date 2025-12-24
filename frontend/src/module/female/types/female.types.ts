@@ -28,6 +28,7 @@ export interface Chat {
   isOnline: boolean;
   hasUnread: boolean;
   unreadCount?: number;
+  distance?: string;
 }
 
 export interface FemaleDashboardData {

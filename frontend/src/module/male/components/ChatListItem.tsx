@@ -39,8 +39,8 @@ export const ChatListItem = ({ chat, onClick, showIntimacy = false }: ChatListIt
     return (
       <p
         className={`text-sm truncate pr-4 ${chat.hasUnread
-            ? 'font-semibold text-gray-800 dark:text-gray-200'
-            : 'font-normal text-gray-500 dark:text-gray-400'
+          ? 'font-semibold text-gray-800 dark:text-gray-200'
+          : 'font-normal text-gray-500 dark:text-gray-400'
           }`}
       >
         {chat.lastMessage}
@@ -130,11 +130,16 @@ export const ChatListItem = ({ chat, onClick, showIntimacy = false }: ChatListIt
                 {chat.intimacy.badge.split(' ')[0]}
               </span>
             )}
+            {chat.distance && (
+              <span className="text-[10px] text-primary font-medium shrink-0 ml-1 flex items-center gap-0.5">
+                • {chat.distance}
+              </span>
+            )}
           </div>
           <span
             className={`text-xs shrink-0 ml-2 ${chat.hasUnread
-                ? 'font-medium text-primary'
-                : 'text-gray-500 dark:text-[#cc8ea3]'
+              ? 'font-medium text-primary'
+              : 'text-gray-500 dark:text-[#cc8ea3]'
               }`}
           >
             {chat.timestamp}

@@ -9,8 +9,10 @@ export interface DiscoverProfile {
     occupation?: string;
     location?: string;
     isOnline: boolean;
-    distance: string;
+    distance?: string | number;
     chatCost: number;
+    latitude?: number;
+    longitude?: number;
 }
 
 export interface UserProfile {

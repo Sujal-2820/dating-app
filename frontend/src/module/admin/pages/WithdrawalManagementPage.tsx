@@ -3,6 +3,7 @@ import { AdminTopNavbar } from '../components/AdminTopNavbar';
 import { AdminSidebar } from '../components/AdminSidebar';
 import { WithdrawalRequestCard } from '../components/WithdrawalRequestCard';
 import { useAdminNavigation } from '../hooks/useAdminNavigation';
+import { useAdminStats } from '../context/AdminStatsContext';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import walletService from '../../../core/services/wallet.service';
 
@@ -31,6 +32,7 @@ export const WithdrawalManagementPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
+  const { refreshStats } = useAdminStats();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -82,6 +84,7 @@ export const WithdrawalManagementPage = () => {
             : w
         )
       );
+      refreshStats();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to approve withdrawal');
     } finally {
@@ -101,6 +104,7 @@ export const WithdrawalManagementPage = () => {
             : w
         )
       );
+      refreshStats();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to reject withdrawal');
     } finally {
@@ -120,6 +124,7 @@ export const WithdrawalManagementPage = () => {
             : w
         )
       );
+      refreshStats();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to mark as paid');
     } finally {

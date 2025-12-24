@@ -1,4 +1,5 @@
 import { MaterialSymbol } from '../types/material-symbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface ProfileHeaderProps {
   user: {
@@ -11,6 +12,8 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = ({ user, onEditClick }: ProfileHeaderProps) => {
+  const { t } = useTranslation();
+
   return (
     <div className="flex items-center justify-between p-4 pt-8">
       <div className="flex items-center gap-4">
@@ -26,10 +29,10 @@ export const ProfileHeader = ({ user, onEditClick }: ProfileHeaderProps) => {
         </div>
         <div className="flex flex-col justify-center">
           <p className="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">
-            Hello, {user.name} <span className="text-pink-500">💕</span>
+            {t('welcome')}, {user.name} <span className="text-pink-500">💕</span>
           </p>
           <p className="text-pink-600/80 dark:text-pink-400/80 text-sm font-semibold leading-normal">
-            {user.isPremium ? '✨ Premium Member' : 'Free Member'}
+            {user.isPremium ? `✨ ${t('vipMembership')}` : t('freeMember')}
           </p>
         </div>
       </div>

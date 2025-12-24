@@ -11,6 +11,8 @@ import * as adminService from '../services/admin.service';
 
 import { useAuth } from '../../../core/context/AuthContext';
 
+import { useAdminStats } from '../context/AdminStatsContext';
+
 export const FemaleApprovalPage = () => {
   const navigate = useNavigate();
   const [approvals, setApprovals] = useState<FemaleApproval[]>([]);
@@ -20,6 +22,7 @@ export const FemaleApprovalPage = () => {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [selectedApprovals, setSelectedApprovals] = useState<Set<string>>(new Set());
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
+  const { refreshStats } = useAdminStats();
   const { token } = useAuth();
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export const FemaleApprovalPage = () => {
   const fetchApprovals = async () => {
     setIsLoading(true);
     try {
-      const result = await adminService.getPendingFemales(filter, 1, 50, token || undefined);
+      const result = await adminService.getPendingFemales(filter, 1, 50);
       setApprovals(result.users);
       if (result.stats) {
         setStats(result.stats);
@@ -43,16 +46,14 @@ export const FemaleApprovalPage = () => {
   };
 
   const filteredApprovals = useMemo(() => {
-    // Note: Backend getPendingFemales only returns 'pending' status by default.
-    // If filter is something else, we might need a different API or filter client-side if we fetched all.
-    // For now, let's assume we fetch all or just pending.
-    return approvals; // Since the API current only returns pending
+    return approvals;
   }, [approvals]);
 
   const handleApprove = async (userId: string) => {
     try {
       await adminService.approveFemale(userId);
       setApprovals((prev) => prev.filter(a => a.userId !== userId));
+      refreshStats(); // Update sidebar count
       alert('User approved successfully');
     } catch (error) {
       alert('Approval failed');

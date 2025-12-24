@@ -1,3 +1,5 @@
+import { Badge } from '../../../core/types/global';
+
 export interface User {
   id: string;
   name: string;
@@ -36,6 +38,7 @@ export interface Chat {
   isVIP?: boolean;
   messageType?: 'text' | 'image' | 'photo' | 'gift';
   readStatus?: 'sent' | 'delivered' | 'read';
+  distance?: string;
 }
 
 export interface MaleDashboardData {
@@ -119,17 +122,6 @@ export interface Gift {
   description?: string;
   category?: 'romantic' | 'fun' | 'luxury' | 'special';
   isAvailable?: boolean;
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  category: 'vip' | 'achievement' | 'special' | 'limited';
-  unlockedAt?: string;
-  isUnlocked: boolean;
-  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 export interface GiftTransaction {

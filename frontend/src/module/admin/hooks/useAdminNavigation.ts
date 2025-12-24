@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAdminStats } from '../context/AdminStatsContext';
 
 interface NavItem {
   id: string;
@@ -14,6 +15,7 @@ export const useAdminNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { stats } = useAdminStats();
 
   // On desktop (lg+), sidebar should always be open
   useEffect(() => {
@@ -45,8 +47,8 @@ export const useAdminNavigation = () => {
       id: 'female-approval',
       icon: 'verified_user',
       label: 'Female Approval',
-      hasBadge: true,
-      badgeCount: 5, // Mock pending count
+      hasBadge: stats.pendingFemaleApprovals > 0,
+      badgeCount: stats.pendingFemaleApprovals,
       isActive: location.pathname.startsWith('/admin/female-approval'),
     },
     {
@@ -59,8 +61,8 @@ export const useAdminNavigation = () => {
       id: 'withdrawals',
       icon: 'account_balance_wallet',
       label: 'Withdrawals',
-      hasBadge: true,
-      badgeCount: 12, // Mock pending count
+      hasBadge: stats.pendingWithdrawals > 0,
+      badgeCount: stats.pendingWithdrawals,
       isActive: location.pathname.startsWith('/admin/withdrawals'),
     },
     {
@@ -81,7 +83,7 @@ export const useAdminNavigation = () => {
       label: 'Audit Logs',
       isActive: location.pathname.startsWith('/admin/audit-logs'),
     },
-  ], [location.pathname]);
+  ], [location.pathname, stats]);
 
   const handleNavigationClick = (itemId: string) => {
     switch (itemId) {

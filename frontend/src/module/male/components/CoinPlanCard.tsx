@@ -1,6 +1,7 @@
 import { MaterialSymbol } from '../types/material-symbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
-export type PlanTier = 'basic' | 'silver' | 'gold' | 'platinum';
+export type PlanTier = 'basic' | 'silver' | 'gold' | 'platinum' | string;
 
 interface CoinPlanCardProps {
   tier: PlanTier;
@@ -27,6 +28,8 @@ export const CoinPlanCard = ({
   onBuyClick,
   disabled = false,
 }: CoinPlanCardProps) => {
+  const { t } = useTranslation();
+
   const getTierStyles = () => {
     if (isBestValue) {
       return 'border-indigo-200 dark:border-indigo-900 bg-gradient-to-br from-indigo-50 to-white dark:from-[#2a1b3d] dark:to-[#341822]';
@@ -79,7 +82,7 @@ export const CoinPlanCard = ({
 
       <div className="flex flex-col gap-1">
         <h1 className={`${getTierColor()} text-sm font-bold uppercase tracking-wider`}>
-          {tier.charAt(0).toUpperCase() + tier.slice(1)}
+          {t(tier.toUpperCase())}
         </h1>
         <div className="flex flex-col gap-0">
           <div className="flex items-baseline gap-2">
@@ -120,7 +123,7 @@ export const CoinPlanCard = ({
           disabled={disabled}
           className={`w-full ${getButtonHeight()} rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 ${getButtonStyles()} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {disabled ? 'Processing...' : 'Buy Now'}
+          {disabled ? t('loading') : t('buyCoins')}
           {isPopular && !disabled && <MaterialSymbol name="bolt" size={18} />}
         </button>
       </div>

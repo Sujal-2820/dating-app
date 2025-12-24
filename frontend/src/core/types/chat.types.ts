@@ -10,6 +10,15 @@ export interface ChatUser {
     isOnline: boolean;
     lastSeen: Date | string;
     isVerified?: boolean;
+    latitude?: number;
+    longitude?: number;
+    profile?: {
+        location?: {
+            city?: string;
+            country?: string;
+            coordinates?: [number, number]; // [lng, lat]
+        };
+    };
 }
 
 export interface Message {

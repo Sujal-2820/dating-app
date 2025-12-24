@@ -15,7 +15,6 @@ import { StatsGrid } from '../components/StatsGrid';
 import { QuickActionsGrid } from '../components/QuickActionsGrid';
 import { BadgeDisplay } from '../../../shared/components/BadgeDisplay';
 import userService from '../../../core/services/user.service';
-import type { Badge } from '../types/male.types';
 
 const mockProfile = {
   id: 'me',
@@ -36,72 +35,7 @@ const mockProfile = {
   ],
 };
 
-const mockUserBadges: Badge[] = [
-  {
-    id: '1',
-    name: 'VIP Member',
-    icon: 'workspace_premium',
-    description: 'Exclusive VIP membership badge',
-    category: 'vip',
-    isUnlocked: true,
-    unlockedAt: '2024-01-15',
-    rarity: 'legendary',
-  },
-  {
-    id: '2',
-    name: 'First Gift',
-    icon: 'redeem',
-    description: 'Sent your first gift',
-    category: 'achievement',
-    isUnlocked: true,
-    unlockedAt: '2024-01-20',
-    rarity: 'common',
-  },
-  {
-    id: '3',
-    name: 'Chat Master',
-    icon: 'chat_bubble',
-    description: 'Sent 100 messages',
-    category: 'achievement',
-    isUnlocked: true,
-    unlockedAt: '2024-01-25',
-    rarity: 'rare',
-  },
-  {
-    id: '5',
-    name: 'Early Adopter',
-    icon: 'star',
-    description: 'Joined in the first month',
-    category: 'special',
-    isUnlocked: true,
-    unlockedAt: '2024-01-01',
-    rarity: 'rare',
-  },
-  {
-    id: '7',
-    name: 'Profile Perfect',
-    icon: 'check_circle',
-    description: 'Complete your profile 100%',
-    category: 'achievement',
-    isUnlocked: true,
-    unlockedAt: '2024-01-10',
-    rarity: 'common',
-  },
-];
 
-const mockDashboardData = {
-  wallet: {
-    balance: 1250,
-  },
-  stats: {
-    matches: 12,
-    sent: 85,
-    views: 204,
-  },
-  user: {
-    badges: mockUserBadges,
-  },
-};
 
 export const MyProfilePage = () => {
   const { t, changeLanguage, currentLanguage } = useTranslation();
@@ -212,7 +146,7 @@ export const MyProfilePage = () => {
 
       <StatsGrid stats={stats} />
 
-      {mockDashboardData.user.badges && mockDashboardData.user.badges.length > 0 && (
+      {user?.badges && user.badges.length > 0 && (
         <div className="px-4 mb-4">
           <div className="bg-gradient-to-br from-white via-pink-50/50 to-rose-50/30 dark:from-[#2d1a24] dark:via-[#3d2530] dark:to-[#2d1a24] rounded-2xl p-5 shadow-lg border border-pink-200/50 dark:border-pink-900/30 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/20 dark:bg-pink-900/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
@@ -232,7 +166,7 @@ export const MyProfilePage = () => {
                 </button>
               </div>
               <BadgeDisplay
-                badges={mockDashboardData.user.badges}
+                badges={user.badges}
                 maxDisplay={6}
                 showUnlockedOnly={true}
                 compact={true}
@@ -240,7 +174,7 @@ export const MyProfilePage = () => {
               />
               <div className="mt-4 pt-4 border-t border-pink-200/50 dark:border-pink-900/30">
                 <p className="text-xs text-pink-600/70 dark:text-pink-400/70 text-center font-medium">
-                  {mockDashboardData.user.badges.filter(b => b.isUnlocked).length} {t('unlockedCount')} • {mockDashboardData.user.badges.length} {t('totalCount')}
+                  {user.badges.filter(b => b.isUnlocked).length} {t('unlockedCount')} • {user.badges.length} {t('totalCount')}
                 </p>
               </div>
             </div>

@@ -11,11 +11,14 @@ import { useGlobalState } from '../../../core/context/GlobalStateContext';
 import chatService from '../../../core/services/chat.service';
 import socketService from '../../../core/services/socket.service';
 import type { Chat as ApiChat } from '../../../core/types/chat.types';
+import { useAuth } from '../../../core/context/AuthContext';
+import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 
 export const ChatListPage = () => {
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
   const { coinBalance } = useGlobalState();
+  const { user: currentUser } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [chats, setChats] = useState<ApiChat[]>([]);
@@ -97,6 +100,18 @@ export const ChatListPage = () => {
       // Only show as unread/bold if there are unread messages AND the last message was NOT sent by me
       const shouldHighlight = chat.unreadCount > 0 && !lastMessageSentByMe;
 
+      const profileLat = chat.otherUser.profile?.location?.coordinates?.[1] || chat.otherUser.latitude;
+      const profileLng = chat.otherUser.profile?.location?.coordinates?.[0] || chat.otherUser.longitude;
+
+      let distanceStr = undefined;
+      const userCoord = { lat: currentUser?.latitude || 0, lng: currentUser?.longitude || 0 };
+      const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
+
+      if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
+        const dist = calculateDistance(userCoord, profileCoord);
+        distanceStr = formatDistance(dist);
+      }
+
       return {
         id: chat._id,
         userId: chat.otherUser._id,
@@ -107,9 +122,10 @@ export const ChatListPage = () => {
         isOnline: chat.otherUser.isOnline,
         hasUnread: shouldHighlight,
         unreadCount: chat.unreadCount,
+        distance: distanceStr,
       };
     });
-  }, [chats, currentUserId]);
+  }, [chats, currentUserId, currentUser]);
 
   const filteredChats = useMemo(() => {
     if (!searchQuery.trim()) return transformedChats;

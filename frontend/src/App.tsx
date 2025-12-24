@@ -62,6 +62,7 @@ import { OtpVerificationPage } from './module/auth/pages/OtpVerificationPage';
 import { VerificationPendingPage } from './module/auth/pages/VerificationPendingPage';
 import { BasicProfilePage } from './module/auth/pages/BasicProfilePage';
 import { InterestsPage } from './module/auth/pages/InterestsPage';
+import { AdminStatsProvider } from './module/admin/context/AdminStatsContext';
 
 function App() {
   return (
@@ -122,20 +123,28 @@ function App() {
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />
 
-
                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<UsersManagementPage />} />
-                  <Route path="/admin/users/:userId" element={<UserDetailPage />} />
-                  <Route path="/admin/female-approval" element={<FemaleApprovalPage />} />
-                  <Route path="/admin/female-approval/:userId" element={<FemaleApprovalDetailPage />} />
-                  <Route path="/admin/female-approval/reject/:userId" element={<RejectApprovalPage />} />
-                  <Route path="/admin/withdrawals" element={<WithdrawalManagementPage />} />
-                  <Route path="/admin/withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
-                  <Route path="/admin/coin-economy" element={<CoinEconomyPage />} />
-                  <Route path="/admin/transactions" element={<TransactionsPage />} />
-                  <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
-                  <Route path="/admin/settings" element={<SettingsPage />} />
+                  <Route
+                    path="/admin/*"
+                    element={
+                      <AdminStatsProvider>
+                        <Routes>
+                          <Route path="dashboard" element={<AdminDashboard />} />
+                          <Route path="users" element={<UsersManagementPage />} />
+                          <Route path="users/:userId" element={<UserDetailPage />} />
+                          <Route path="female-approval" element={<FemaleApprovalPage />} />
+                          <Route path="female-approval/:userId" element={<FemaleApprovalDetailPage />} />
+                          <Route path="female-approval/reject/:userId" element={<RejectApprovalPage />} />
+                          <Route path="withdrawals" element={<WithdrawalManagementPage />} />
+                          <Route path="withdrawals/reject/:requestId" element={<RejectWithdrawalPage />} />
+                          <Route path="coin-economy" element={<CoinEconomyPage />} />
+                          <Route path="transactions" element={<TransactionsPage />} />
+                          <Route path="audit-logs" element={<AuditLogsPage />} />
+                          <Route path="settings" element={<SettingsPage />} />
+                        </Routes>
+                      </AdminStatsProvider>
+                    }
+                  />
                 </Route>
 
 

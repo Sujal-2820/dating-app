@@ -1,4 +1,5 @@
 import { MaterialSymbol } from '../types/material-symbol';
+import { useTranslation } from '../../../core/hooks/useTranslation';
 
 interface WalletBalanceCardProps {
   balance: number;
@@ -11,6 +12,7 @@ export const WalletBalanceCard = ({
   memberTier = 'Member',
   userAvatar,
 }: WalletBalanceCardProps) => {
+  const { t } = useTranslation();
   const formattedBalance = (balance || 0).toLocaleString();
   const defaultAvatar =
     'https://lh3.googleusercontent.com/aida-public/AB6AXuBoS_YLtV4hpNVbbyf0nrVmbQX6vzgn-xGLdye-t2gBz0LRib9HX4PeYJIj364IRM63hBRKmTLtWfuVOfikvNIryKKMjql6Ig1suPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPsbWoA45Vt8rO0N-wt7qwqIwMBV4Gaw6j7ooJER4L9QExcc20SNkyk1schLm-swXJOgx5ez3objGGhUPZpOMLYRY2W5WgHwClZhJ-JaWw470QybQVyCQD-hZYfamq_iJqx0EAJE0UNaa6Ee3_FbUUYSuUIIViQ_QxI6ytCepxc';
@@ -43,7 +45,7 @@ export const WalletBalanceCard = ({
         </h1>
 
         <p className="text-white/60 text-xs mt-2">
-          Your coin balance
+          {t('yourCoinBalance')}
         </p>
       </div>
     </div>

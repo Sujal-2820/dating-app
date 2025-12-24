@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import { FemaleBottomNavigation } from '../components/FemaleBottomNavigation';
 import { useFemaleNavigation } from '../hooks/useFemaleNavigation';
+import { useAuth } from '../../../core/context/AuthContext';
+import { calculateDistance, formatDistance, areCoordinatesValid } from '../../../utils/distanceCalculator';
 import userService from '../../../core/services/user.service';
 
 interface UserProfile {
@@ -15,6 +17,10 @@ interface UserProfile {
   photos: { url: string; isPrimary: boolean }[];
   isOnline?: boolean;
   isVerified?: boolean;
+  interests?: string[];
+  distance?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export const UserProfilePage = () => {
@@ -22,6 +28,7 @@ export const UserProfilePage = () => {
   const navigate = useNavigate();
   const { navigationItems, handleNavigationClick } = useFemaleNavigation();
 
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,17 +57,33 @@ export const UserProfilePage = () => {
       const data = await userService.getUserProfile(profileId);
       console.log('[FemaleUserProfilePage] Profile data received:', data);
 
+      const profileLat = data.profile?.location?.coordinates?.[1] || data.latitude;
+      const profileLng = data.profile?.location?.coordinates?.[0] || data.longitude;
+
+      let distanceStr = undefined;
+      const userCoord = { lat: user?.latitude || 0, lng: user?.longitude || 0 };
+      const profileCoord = { lat: profileLat || 0, lng: profileLng || 0 };
+
+      if (areCoordinatesValid(userCoord) && areCoordinatesValid(profileCoord)) {
+        const dist = calculateDistance(userCoord, profileCoord);
+        distanceStr = formatDistance(dist);
+      }
+
       // Map backend response to frontend structure
       const mappedProfile: UserProfile = {
         _id: data.id || data._id,
-        name: data.name,
-        bio: data.bio,
-        age: data.age,
-        location: data.city || data.location,
-        occupation: data.occupation,
-        photos: data.photos || [],
+        name: data.name || data.profile?.name,
+        bio: data.bio || data.profile?.bio,
+        age: data.age || data.profile?.age,
+        location: data.city || data.location || data.profile?.location?.city,
+        occupation: data.occupation || data.profile?.occupation,
+        photos: data.photos || data.profile?.photos || [],
+        interests: data.interests || data.profile?.interests || [],
         isOnline: data.isOnline,
         isVerified: data.isVerified,
+        distance: distanceStr,
+        latitude: profileLat,
+        longitude: profileLng
       };
 
       console.log('[FemaleUserProfilePage] Mapped profile:', mappedProfile);
@@ -148,6 +171,12 @@ export const UserProfilePage = () => {
             </div>
             <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
               {profile.age && <span>{profile.age} years old</span>}
+              {profile.location && <span>• {profile.location}</span>}
+              {profile.distance && (
+                <span className="flex items-center gap-1 font-medium text-primary">
+                  • <MaterialSymbol name="location_on" size={14} /> {profile.distance}
+                </span>
+              )}
             </div>
             {profile.occupation && (
               <div className="mt-2">
@@ -157,6 +186,23 @@ export const UserProfilePage = () => {
               </div>
             )}
           </div>
+
+          {/* Interests */}
+          {(profile.interests && profile.interests.length > 0) && (
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Interests</h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.interests.map((interest, index) => (
+                  <span
+                    key={index}
+                    className="px-4 py-1.5 bg-gray-100 dark:bg-[#342d18] text-gray-700 dark:text-gray-300 rounded-full text-sm border border-gray-200 dark:border-white/5"
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Bio */}
           {profile.bio && (

@@ -431,6 +431,7 @@ export const ChatWindowPage = () => {
         coinBalance={coinBalance}
         intimacy={intimacy}
         onMoreClick={() => setIsMoreOptionsOpen(true)}
+        onUserInfoClick={() => navigate(`/male/profile/${chatInfo.otherUser._id}`)}
         onBackClick={() => navigate('/male/chats')}
         showVideoCall={true}
         onVideoCall={async () => {

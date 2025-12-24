@@ -9,6 +9,7 @@ interface Chat {
   timestamp: string;
   isOnline: boolean;
   hasUnread: boolean;
+  distance?: string;
 }
 
 interface ActiveChatsListProps {
@@ -35,9 +36,16 @@ const ChatItem = ({ chat, onClick, sayHiPlaceholder }: { chat: Chat; onClick?: (
       </div>
       <div className="flex flex-1 flex-col justify-center text-left min-w-0">
         <div className="flex justify-between items-center mb-0.5">
-          <p className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate group-hover:text-pink-700 dark:group-hover:text-pink-300 transition-colors">
-            {chat.userName}
-          </p>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <p className="text-slate-900 dark:text-white text-base font-bold leading-normal truncate group-hover:text-pink-700 dark:group-hover:text-pink-300 transition-colors">
+              {chat.userName}
+            </p>
+            {chat.distance && (
+              <span className="text-[10px] text-primary font-medium shrink-0 flex items-center gap-0.5">
+                • {chat.distance}
+              </span>
+            )}
+          </div>
           <p className="text-pink-600/70 dark:text-pink-400/70 text-xs font-medium flex-shrink-0 ml-2">
             {chat.timestamp}
           </p>

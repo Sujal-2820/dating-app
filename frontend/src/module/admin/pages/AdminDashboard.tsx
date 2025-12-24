@@ -5,6 +5,8 @@ import { AdminSidebar } from '../components/AdminSidebar';
 import { useAdminNavigation } from '../hooks/useAdminNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { AdminDashboardData, ActivityItem } from '../types/admin.types';
+import * as adminService from '../../../core/services/admin.service';
+import { BarChart, TrendChart } from '../components/DashboardCharts';
 
 export const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
@@ -21,25 +23,13 @@ export const AdminDashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('matchmint_auth_token');
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/dashboard/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch dashboard stats');
-
-      const data = await response.json();
-
-      const dashboardDataFromApi = data.data;
+      const data = await adminService.getDashboardStats();
 
       // Transform backend stats to match AdminDashboardData format
       const transformedData: AdminDashboardData = {
-        stats: dashboardDataFromApi.stats,
-        charts: dashboardDataFromApi.charts,
-        recentActivity: dashboardDataFromApi.recentActivity
+        stats: data.stats,
+        charts: data.charts,
+        recentActivity: data.recentActivity
       };
 
       setDashboardData(transformedData);
@@ -145,7 +135,7 @@ export const AdminDashboard = () => {
             <StatCard
               label="Total Users"
               value={dashboardData.stats.totalUsers.total.toLocaleString()}
-              subValue={`+${dashboardData.stats.totalUsers.male}m / +${dashboardData.stats.totalUsers.female}f`}
+              subValue={`${dashboardData.stats.totalUsers.male}m / ${dashboardData.stats.totalUsers.female}f`}
               icon="people"
               color="blue"
             />
@@ -157,11 +147,13 @@ export const AdminDashboard = () => {
               color="purple"
             />
             <StatCard
-              label="Net Profit"
-              value={formatCurrency(dashboardData.stats.revenue.profit)}
-              subValue={`${((dashboardData.stats.revenue.profit / dashboardData.stats.revenue.deposits) * 100).toFixed(1)}% margin`}
-              icon="account_balance"
-              color="yellow"
+              label="Admin Reviews"
+              value={dashboardData.stats.pendingFemaleApprovals.toString()}
+              subValue="Pending Females"
+              icon="verified_user"
+              color="green"
+              onClick={() => navigate('/admin/female-approval')}
+              clickLabel="Review"
             />
             <StatCard
               label="Pending W/D"
@@ -170,12 +162,12 @@ export const AdminDashboard = () => {
               icon="pending"
               color="orange"
               onClick={() => navigate('/admin/withdrawals')}
-              clickLabel="Review"
+              clickLabel="Process"
             />
             <StatCard
               label="Transactions"
               value={dashboardData.stats.totalTransactions.toLocaleString()}
-              subValue="Total Count"
+              subValue="Total History"
               icon="receipt_long"
               color="indigo"
               onClick={() => navigate('/admin/transactions')}
@@ -189,21 +181,11 @@ export const AdminDashboard = () => {
             <div className="lg:col-span-2 space-y-5">
               {/* Charts Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ChartCard title="User Growth" subtitle="New registrations" color="blue">
-                  <div className="h-40 flex items-center justify-center text-gray-400 dark:text-gray-600">
-                    <div className="text-center">
-                      <MaterialSymbol name="bar_chart" size={40} className="mx-auto mb-1 opacity-50" />
-                      <span className="text-xs">Chart Area</span>
-                    </div>
-                  </div>
+                <ChartCard title="User Growth" subtitle="New registrations (30d)" color="blue">
+                  <MiniBarChart data={dashboardData.charts.userGrowth} />
                 </ChartCard>
                 <ChartCard title="Revenue Trends" subtitle="Deposits vs Payouts" color="purple">
-                  <div className="h-40 flex items-center justify-center text-gray-400 dark:text-gray-600">
-                    <div className="text-center">
-                      <MaterialSymbol name="show_chart" size={40} className="mx-auto mb-1 opacity-50" />
-                      <span className="text-xs">Chart Area</span>
-                    </div>
-                  </div>
+                  <MiniTrendChart data={dashboardData.charts.revenueTrends} />
                 </ChartCard>
               </div>
 
@@ -265,7 +247,7 @@ export const AdminDashboard = () => {
 
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
@@ -342,4 +324,48 @@ const QuickActionBtn = ({ label, icon, onClick }: any) => (
     <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200">{label}</span>
   </button>
 );
+
+const MiniBarChart = ({ data }: { data: Array<{ date: string; count: number }> }) => {
+  const max = Math.max(...data.map(d => d.count), 1);
+
+  return (
+    <div className="h-40 flex items-end gap-1 px-2 pt-4">
+      {data.slice(-14).map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center group relative">
+          <div
+            className="w-full bg-blue-500/40 group-hover:bg-blue-500 transition-colors rounded-t-sm"
+            style={{ height: `${(d.count / max) * 100}%`, minHeight: '2px' }}
+          />
+          <div className="absolute bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-20">
+            {d.count} ({d.date.split('-').slice(1).join('/')})
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const MiniTrendChart = ({ data }: { data: Array<{ date: string; deposits: number; payouts: number }> }) => {
+  const max = Math.max(...data.map(d => Math.max(d.deposits, d.payouts)), 1);
+
+  return (
+    <div className="h-40 flex items-end gap-1.5 px-2 pt-4">
+      {data.slice(-14).map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-end gap-[1px] group relative h-full justify-end">
+          <div
+            className="w-full bg-purple-500/60 rounded-t-sm"
+            style={{ height: `${(d.deposits / max) * 100}%`, minHeight: d.deposits > 0 ? '2px' : '0' }}
+          />
+          <div
+            className="w-full bg-orange-500/60 rounded-t-sm"
+            style={{ height: `${(d.payouts / max) * 100}%`, minHeight: d.payouts > 0 ? '2px' : '0' }}
+          />
+          <div className="absolute bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-20">
+            D: {d.deposits} / P: {d.payouts} ({d.date.split('-').slice(1).join('/')})
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 

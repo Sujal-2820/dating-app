@@ -6,6 +6,7 @@ interface ChatWindowHeaderProps {
   userAvatar: string;
   isOnline: boolean;
   onMoreClick?: () => void;
+  onUserInfoClick?: () => void;
   coinBalance?: number;
 }
 
@@ -14,6 +15,7 @@ export const ChatWindowHeader = ({
   userAvatar,
   isOnline,
   onMoreClick,
+  onUserInfoClick,
   coinBalance,
 }: ChatWindowHeaderProps) => {
   const navigate = useNavigate();
@@ -31,7 +33,10 @@ export const ChatWindowHeader = ({
         </button>
 
         {/* User Info */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        <button
+          onClick={onUserInfoClick}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left active:opacity-70 transition-opacity"
+        >
           <div className="relative shrink-0">
             <div
               className="h-8 w-8 rounded-full object-cover border-2 border-white dark:border-[#230f16] bg-center bg-no-repeat bg-cover"
@@ -50,7 +55,7 @@ export const ChatWindowHeader = ({
               {isOnline ? 'Online' : 'Offline'}
             </p>
           </div>
-        </div>
+        </button>
       </div>
 
       <div className="flex items-center gap-2">

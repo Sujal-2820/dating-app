@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminTopNavbar } from '../components/AdminTopNavbar';
@@ -6,38 +5,57 @@ import { AdminSidebar } from '../components/AdminSidebar';
 import { useAdminNavigation } from '../hooks/useAdminNavigation';
 import { MaterialSymbol } from '../../../shared/components/MaterialSymbol';
 import type { WithdrawalRequest } from '../types/admin.types';
-
-// Mock data - replace with actual API call
-const mockWithdrawal: WithdrawalRequest = {
-  id: '1',
-  userId: '2',
-  userName: 'Sarah Smith',
-  userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC81hkr7IkYx1ryaWF6XEKAw50xyRvJBGMogrF-zD5ChG66QAopPNWZvczWXWXasmarotX6xfLiXqIGT-HGa4N4mpnfl6tHPN16fBm5L0ebBFFR6YnfhOhNpt_PXB-rNdw4iozv00ERuqlCKno-B1P2UZ6g-dU5YY4Or_m3Xdgk4_MrxVK9o6Uz70Vr_fXQdMhSrjjCl7s_yQE_R1O9FNwroQqdfSFv6kiO76qVxmnHDhLrYwRWtfdSdegsNjAzgAdgkUZgUomw2j8',
-  coinsRequested: 5000,
-  payoutAmountINR: 5000,
-  payoutMethod: 'UPI',
-  payoutDetails: {
-    upiId: 'sarah.smith@paytm',
-  },
-  status: 'pending',
-  createdAt: '2024-01-20T10:00:00Z',
-  payoutPercentage: 80,
-};
+import walletService from '../../../core/services/wallet.service';
+import { useAdminStats } from '../context/AdminStatsContext';
 
 export const RejectWithdrawalPage = () => {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useAdminNavigation();
+  const { refreshStats } = useAdminStats();
   const [withdrawal, setWithdrawal] = useState<WithdrawalRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (requestId) {
-      // TODO: API call to fetch withdrawal details
-      setWithdrawal(mockWithdrawal);
-    }
+    const fetchWithdrawal = async () => {
+      if (!requestId) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        // We might need a specific getById, or filter from list
+        // For now, let's try to find it in the pending list
+        const response = await walletService.getPendingWithdrawals();
+        const found = response.withdrawals.find((w: any) => w._id === requestId);
+
+        if (found) {
+          setWithdrawal({
+            id: found._id,
+            userId: found.userId?._id || found.userId,
+            userName: found.userName || found.userId?.profile?.name || 'Unknown',
+            userAvatar: found.userId?.profile?.photos?.[0]
+              ? (typeof found.userId.profile.photos[0] === 'string' ? found.userId.profile.photos[0] : found.userId.profile.photos[0].url)
+              : undefined,
+            coinsRequested: found.coinsRequested,
+            payoutAmountINR: found.payoutAmountINR,
+            payoutMethod: found.payoutMethod,
+            payoutDetails: found.payoutDetails,
+            status: found.status,
+            createdAt: found.createdAt,
+            payoutPercentage: found.payoutPercentage
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch withdrawal:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchWithdrawal();
   }, [requestId]);
 
   const handleSubmit = async () => {
@@ -47,15 +65,54 @@ export const RejectWithdrawalPage = () => {
     }
 
     setIsSubmitting(true);
-    // TODO: API call to reject withdrawal
-    console.log('Rejecting withdrawal:', { requestId, reason: rejectionReason });
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-    setIsSubmitting(false);
-    navigate('/admin/withdrawals');
+    try {
+      await walletService.rejectWithdrawal(requestId!, rejectionReason);
+      refreshStats();
+      navigate('/admin/withdrawals');
+    } catch (error) {
+      console.error('Rejection failed:', error);
+      alert('Failed to reject withdrawal');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
   const formatDate = (date: Date) => date.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  if (isLoading) {
+    return (
+      <div className="relative flex h-full min-h-screen w-full flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0a0a0a] dark:via-[#1a1a1a] dark:to-[#0a0a0a] overflow-x-hidden">
+        <AdminTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <AdminSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          items={navigationItems}
+          onItemClick={handleNavigationClick}
+        />
+        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="relative flex h-full min-h-screen w-full flex-col bg-gray-50 dark:bg-[#0a0a0a] overflow-x-hidden">
+        <AdminTopNavbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <AdminSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          items={navigationItems}
+          onItemClick={handleNavigationClick}
+        />
+        <div className="flex-1 p-4 md:p-6 mt-[57px] lg:ml-64 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (!withdrawal) {
     return (
