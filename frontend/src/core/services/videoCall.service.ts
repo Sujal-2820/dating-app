@@ -7,6 +7,7 @@
 
 import AgoraRTC, { IAgoraRTCClient, ICameraVideoTrack, IMicrophoneAudioTrack, IRemoteVideoTrack, IRemoteAudioTrack } from 'agora-rtc-sdk-ng';
 import socketService from './socket.service';
+import { audioManager } from '../utils/audioManager';
 
 // Environment config
 const AGORA_APP_ID = import.meta.env.VITE_AGORA_APP_ID || '';
@@ -189,6 +190,7 @@ class VideoCallService {
      * Reject an incoming call
      */
     rejectCall(callId: string): void {
+        audioManager.stopRingtone();
         socketService.emitToServer('call:reject', { callId });
         this.cleanup();
     }
@@ -460,6 +462,10 @@ class VideoCallService {
 
     private handleIncomingCall(data: any): void {
         console.log('📞 Incoming call:', data);
+
+        // Play ringtone
+        audioManager.playRingtone();
+
         this.updateState({
             callId: data.callId,
             status: 'ringing',
@@ -473,6 +479,10 @@ class VideoCallService {
 
     private handleOutgoingCall(data: any): void {
         console.log('📞 Outgoing call status:', data);
+
+        // Play ringtone for outgoing call
+        audioManager.playRingtone();
+
         this.updateState({
             callId: data.callId,
             status: 'ringing',
@@ -522,6 +532,10 @@ class VideoCallService {
 
     private handleCallStarted(data: any): void {
         console.log('📞 Call started:', data);
+
+        // Stop ringtone when call connects
+        audioManager.stopRingtone();
+
         this.updateState({
             status: 'connected',
             startTime: data.startTime || Date.now(),

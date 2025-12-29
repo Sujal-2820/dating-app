@@ -10,6 +10,7 @@ import walletService from '../services/wallet.service';
 import indexedDBCache from '../services/indexedDB.service';
 import { useAuth } from './AuthContext';
 import { mapUserToProfile } from '../utils/auth';
+import { audioManager } from '../utils/audioManager';
 
 interface GlobalState {
     user: UserProfile | null;
@@ -87,6 +88,9 @@ export const GlobalStateProvider = ({ children }: GlobalStateProviderProps) => {
     const addNotification = useCallback((notification: Omit<InAppNotification, 'id'>) => {
         const id = Math.random().toString(36).substr(2, 9);
         setNotifications(prev => [...prev, { ...notification, id }]);
+
+        // Play notification sound
+        audioManager.playNotification();
 
         // Auto-remove after 5 seconds
         setTimeout(() => {
