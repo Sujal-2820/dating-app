@@ -424,8 +424,14 @@ class VideoCallService {
                 await this.agoraClient.publish([this.localAudioTrack, this.localVideoTrack]);
                 console.log('🎥 Published local tracks');
 
-                // NOW notify backend that call is connected (both users can see/hear each other)
-                socketService.emitToServer('call:connected', { callId: this.callState.callId });
+                // Only the CALLER sends call:connected to avoid duplicate events
+                // The receiver (incoming call) should not send this
+                if (!this.callState.isIncoming) {
+                    console.log('🎥 Caller notifying backend: call connected');
+                    socketService.emitToServer('call:connected', { callId: this.callState.callId });
+                } else {
+                    console.log('🎥 Receiver - not sending call:connected (caller will send it)');
+                }
             }
 
             this.updateState({

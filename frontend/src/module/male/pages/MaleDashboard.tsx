@@ -52,7 +52,7 @@ export const MaleDashboard = () => {
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
 
   // Permission management
-  const { requestAllPermissions, hasRequestedPermissions } = usePermissions();
+  const { hasRequestedPermissions } = usePermissions();
 
   useEffect(() => {
     window.scrollTo(0, 0);

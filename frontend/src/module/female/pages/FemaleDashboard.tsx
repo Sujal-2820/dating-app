@@ -29,7 +29,7 @@ const FemaleDashboardContent = () => {
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useFemaleNavigation();
 
   // Permission management
-  const { requestAllPermissions, hasRequestedPermissions } = usePermissions();
+  const { hasRequestedPermissions } = usePermissions();
 
   const quickActions = useMemo(() => [
     { id: 'earnings', icon: 'trending_up', label: t('viewEarnings') },
