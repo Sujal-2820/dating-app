@@ -10,7 +10,7 @@ import logger from '../../utils/logger.js';
 
 // Environment config
 const AGORA_APP_ID = process.env.AGORA_APP_ID;
-const AGORA_APP_CERTIFICATE = process.env.AGORA_CERTIFICATE;
+const AGORA_APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE;
 
 // Token expiry (24 hours in seconds - Agora recommends short-lived tokens)
 const TOKEN_EXPIRY_SECONDS = 86400;
