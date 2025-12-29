@@ -8,6 +8,7 @@ import { MaleTopNavbar } from '../components/MaleTopNavbar';
 import { MaleSidebar } from '../components/MaleSidebar';
 import { useMaleNavigation } from '../hooks/useMaleNavigation';
 import { LocationPromptModal } from '../../../shared/components/LocationPromptModal';
+import { PermissionRequestModal } from '../../../shared/components/PermissionRequestModal';
 import userService from '../../../core/services/user.service';
 import { useTranslation } from '../../../core/hooks/useTranslation';
 import { useOptimizedChatList } from '../../../core/hooks/useOptimizedChatList';
@@ -44,6 +45,7 @@ export const MaleDashboard = () => {
   const { chats: rawChats, isLoading: isChatsLoading, refreshChats } = useOptimizedChatList();
 
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const { isSidebarOpen, setIsSidebarOpen, navigationItems, handleNavigationClick } = useMaleNavigation();
@@ -52,6 +54,12 @@ export const MaleDashboard = () => {
     window.scrollTo(0, 0);
     refreshChats();
     fetchNearbyUsers();
+
+    // Check if we should show permission modal (only on first visit)
+    const hasSeenPermissionModal = localStorage.getItem('matchmint_permissions_requested');
+    if (!hasSeenPermissionModal) {
+      setShowPermissionModal(true);
+    }
   }, []);
 
   const fetchNearbyUsers = async () => {
@@ -168,6 +176,20 @@ export const MaleDashboard = () => {
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col bg-gradient-to-br from-pink-50 via-rose-50/30 to-white dark:from-[#1a0f14] dark:via-[#2d1a24] dark:to-[#0a0a0a] overflow-x-hidden pb-24">
+      {/* Permission Request Modal - Shows on first app open */}
+      {showPermissionModal && (
+        <PermissionRequestModal
+          onComplete={() => {
+            localStorage.setItem('matchmint_permissions_requested', 'true');
+            setShowPermissionModal(false);
+          }}
+          onSkip={() => {
+            localStorage.setItem('matchmint_permissions_requested', 'true');
+            setShowPermissionModal(false);
+          }}
+        />
+      )}
+
       {showLocationPrompt && (
         <LocationPromptModal
           onSave={handleLocationSave}
