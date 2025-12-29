@@ -82,9 +82,10 @@ export const validateCallRequest = async (callerId, receiverId) => {
     }
 
     // 6. Check receiver is online (optional but recommended)
-    if (!receiver.isOnline) {
-        throw new BadRequestError('User is currently offline');
-    }
+    // NOTE: Commented out - socket connection is more reliable than DB isOnline flag
+    // if (!receiver.isOnline) {
+    //     throw new BadRequestError('User is currently offline');
+    // }
 
     return { valid: true, chat, caller, receiver };
 };
