@@ -397,10 +397,8 @@ class VideoCallService {
                 this.agoraClient.on('connection-state-change', (curState, _prevState, reason) => {
                     console.log('🎥 Agora connection state:', curState, 'reason:', reason);
 
-                    if (curState === 'CONNECTED') {
-                        // Notify backend that call is connected
-                        socketService.emitToServer('call:connected', { callId: this.callState.callId });
-                    } else if (curState === 'DISCONNECTED' || curState === 'DISCONNECTING') {
+                    // Don't send call:connected here - wait for successful publish
+                    if (curState === 'DISCONNECTED' || curState === 'DISCONNECTING') {
                         if (reason === 'NETWORK_ERROR') {
                             socketService.emitToServer('call:connection-failed', { callId: this.callState.callId });
                         }
@@ -425,6 +423,9 @@ class VideoCallService {
             if (this.localAudioTrack && this.localVideoTrack) {
                 await this.agoraClient.publish([this.localAudioTrack, this.localVideoTrack]);
                 console.log('🎥 Published local tracks');
+
+                // NOW notify backend that call is connected (both users can see/hear each other)
+                socketService.emitToServer('call:connected', { callId: this.callState.callId });
             }
 
             this.updateState({
