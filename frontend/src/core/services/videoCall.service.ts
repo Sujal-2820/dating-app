@@ -298,24 +298,8 @@ class VideoCallService {
         try {
             console.log('📹 Initializing local media with Agora...');
 
-            // First, request permissions explicitly (critical for Android)
-            try {
-                const permissionStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true
-                });
-                // Stop immediately - we just needed to trigger permission
-                permissionStream.getTracks().forEach(track => track.stop());
-                console.log('✅ Camera/Mic permissions granted');
-            } catch (permError) {
-                console.error('❌ Permission denied:', permError);
-                throw new Error('Camera and microphone access denied. Please enable in settings.');
-            }
-
-            // Small delay for Android to release resources
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Create local audio and video tracks
+            // Create local audio and video tracks directly
+            // Permission is already granted by VideoCallContext before this is called
             [this.localAudioTrack, this.localVideoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
                 {
                     AEC: true, // Acoustic Echo Cancellation

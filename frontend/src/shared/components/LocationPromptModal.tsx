@@ -17,7 +17,7 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
-    const handleUseMyLocation = () => {
+    const handleUseMyLocation = async () => {
         if (!navigator.geolocation) {
             setError('Geolocation is not supported by your browser');
             return;
@@ -26,8 +26,23 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
         setIsFetchingLocation(true);
         setError('');
 
-        // Always call getCurrentPosition - this will trigger the native browser permission prompt
-        // if permission hasn't been granted/denied yet
+        // Check if permission API is available
+        if (navigator.permissions) {
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+
+                if (permissionStatus.state === 'denied') {
+                    setError('Location permission denied. Please enable in your device settings.');
+                    setIsFetchingLocation(false);
+                    return;
+                }
+            } catch (e) {
+                // Permission API not supported, continue with getCurrentPosition
+                console.log('Permission API not supported, using getCurrentPosition');
+            }
+        }
+
+        // This will trigger the native Android/browser permission prompt if not granted
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude;
@@ -69,13 +84,10 @@ export const LocationPromptModal = ({ onSave, onClose }: LocationPromptModalProp
                 // Code 1 is PERMISSION_DENIED
                 if (err.code === 1) {
                     console.warn('User denied geolocation permission');
-                    // Simple message - user needs to enter manually
-                    setError('Location access denied. Please enter your location manually.');
+                    setError('Location access denied. Please enable in your device settings and try again.');
                 } else if (err.code === 2) {
-                    // Position unavailable
                     setError('Unable to determine your location. Please enter manually.');
                 } else if (err.code === 3) {
-                    // Timeout
                     setError('Location request timed out. Please try again or enter manually.');
                 } else {
                     console.error('Geolocation error:', err);

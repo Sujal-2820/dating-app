@@ -115,6 +115,9 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
                 });
                 // Stop tracks immediately - we just needed permission
                 stream.getTracks().forEach(track => track.stop());
+
+                // Wait for camera to be fully released (critical for Android)
+                await new Promise(resolve => setTimeout(resolve, 200));
             } catch (permError) {
                 console.error('Permission denied:', permError);
                 throw new Error('Camera and microphone access required for video calls');
@@ -135,6 +138,9 @@ export const VideoCallProvider = ({ children }: VideoCallProviderProps) => {
                 });
                 // Stop tracks immediately - we just needed permission
                 stream.getTracks().forEach(track => track.stop());
+
+                // Wait for camera to be fully released (critical for Android)
+                await new Promise(resolve => setTimeout(resolve, 200));
             } catch (permError) {
                 console.error('Permission denied:', permError);
                 throw new Error('Camera and microphone access required for video calls');
