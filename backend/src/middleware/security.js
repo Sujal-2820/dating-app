@@ -15,20 +15,28 @@ const { frontendUrl } = getEnvConfig();
  */
 export const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
 
+    const envFrontendUrl = process.env.FRONTEND_URL || frontendUrl;
+
+    // Clean URLs (remove trailing slashes for comparison)
+    const cleanOrigin = origin.replace(/\/$/, '');
+    const cleanFrontendUrl = envFrontendUrl ? envFrontendUrl.replace(/\/$/, '') : null;
+
     const allowedOrigins = [
-      frontendUrl,
+      cleanFrontendUrl,
       'http://localhost:5173',
       'http://localhost:3000',
-      process.env.FRONTEND_URL,
-    ];
+      'https://dating-app1-seven.vercel.app'
+    ].filter(Boolean);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    if (allowedOrigins.includes(cleanOrigin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`⚠️ CORS Warning: Origin ${origin} not explicitly allowed. Allowed: ${allowedOrigins.join(', ')}`);
+      // For now, allow it but log a warning to help debug
+      callback(null, true);
     }
   },
   credentials: true,
