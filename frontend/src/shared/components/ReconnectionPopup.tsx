@@ -3,6 +3,7 @@
  * Shows when call is disconnected and allows one-time rejoin
  */
 
+import React from 'react';
 import { useTranslation } from '../../core/hooks/useTranslation';
 
 interface ReconnectionPopupProps {

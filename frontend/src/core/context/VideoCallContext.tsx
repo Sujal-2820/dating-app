@@ -63,7 +63,8 @@ export const VideoCallProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
 
     // Call duration timer (5 minutes = 300 seconds)
-    const [remainingTime, setRemainingTime] = useState(300);
+    const [remainingTime] = useState(300);
+    // const [remainingTime, setRemainingTime] = useState(300); // TODO: Implement countdown timer
 
     // Setup Agora callbacks
     useEffect(() => {

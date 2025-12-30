@@ -3,6 +3,7 @@
  * Shows when remote user is disconnected and might rejoin
  */
 
+import React from 'react';
 import { useTranslation } from '../../core/hooks/useTranslation';
 
 interface WaitingForRejoinProps {
