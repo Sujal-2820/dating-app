@@ -27,15 +27,15 @@ export const corsOptions = {
     const allowedOrigins = [
       cleanFrontendUrl,
       'http://localhost:5173',
-      'http://localhost:3000',
-      'https://dating-app1-seven.vercel.app'
+      'http://localhost:3000'
     ].filter(Boolean);
 
-    if (allowedOrigins.includes(cleanOrigin) || process.env.NODE_ENV === 'development') {
+    const isAllowedVercel = cleanOrigin.endsWith('.vercel.app');
+
+    if (allowedOrigins.includes(cleanOrigin) || isAllowedVercel || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      console.warn(`⚠️ CORS Warning: Origin ${origin} not explicitly allowed. Allowed: ${allowedOrigins.join(', ')}`);
-      // For now, allow it but log a warning to help debug
+      console.warn(`⚠️ CORS Warning: Origin ${origin} not explicitly allowed.`);
       callback(null, true);
     }
   },
